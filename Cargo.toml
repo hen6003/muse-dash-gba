@@ -9,6 +9,10 @@ edition = "2021"
 [dependencies]
 agb = "0.18.0"
 
+[build-dependencies]
+log = "0.4.20"
+simple-logging = "2.0.2"
+
 [profile.dev]
 opt-level = 3
 debug = true

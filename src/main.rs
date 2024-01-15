@@ -1,23 +1,161 @@
-// Games made using `agb` are no_std which means you don't have access to the standard
-// rust library. This is because the game boy advance doesn't really have an operating
-// system, so most of the content of the standard library doesn't apply.
-//
-// Provided you haven't disabled it, agb does provide an allocator, so it is possible
-// to use both the `core` and the `alloc` built in crates.
 #![no_std]
-// `agb` defines its own `main` function, so you must declare your game's main function
-// using the #[agb::entry] proc macro. Failing to do so will cause failure in linking
-// which won't be a particularly clear error message.
 #![no_main]
 // This is required to allow writing tests
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-// The main function must take 1 arguments and never return. The agb::entry decorator
-// ensures that everything is in order. `agb` will call this after setting up the stack
-// and interrupt handlers correctly. It will also handle creating the `Gba` struct for you.
+use agb::{
+    display::{
+        object::TagMap,
+        tiled::{RegularBackgroundSize, TileFormat, TiledMap},
+    },
+    fixnum::Vector2D,
+    include_aseprite, include_background_gfx, include_wav,
+    rng::RandomNumberGenerator,
+    sound::mixer::{self, Frequency, SoundChannel},
+};
+use player::{Animation, Player};
+
+mod player;
+
+//include!(concat!(env!("OUT_DIR"), "/maps.rs"));
+
+include_background_gfx!(background, tiles => "assets/background.aseprite");
+
+const GRAPHICS: &TagMap =
+    include_aseprite!("assets/new_player.aseprite", "assets/note.aseprite").tags();
+
+const SOUND: &[u8] = include_wav!("assets/sound.wav");
+
+const FLOOR_HEIGHT: u16 = 16;
+const JUDGEMENT_AREA: u16 = 5;
+const JUDGEMENT_HIGH: u16 = 10;
+const JUDGEMENT_LOW: u16 = 13;
+
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
-    agb::no_game(gba);
+    let object_gfx = gba.display.object.get_managed();
+    let (video_gfx, mut vram) = gba.display.video.tiled0();
+
+    // Then to play the sound:
+    let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
+
+    let mut channel = SoundChannel::new(SOUND);
+    channel.stereo();
+    let _ = mixer.play_sound(channel); // we don't mind if this sound doesn't actually play
+
+    //mixer.enable();
+
+    let mut map = video_gfx.background(
+        agb::display::Priority::P0,
+        RegularBackgroundSize::Background32x32,
+        TileFormat::FourBpp,
+    );
+
+    vram.set_background_palettes(background::PALETTES);
+
+    for y in 0..20u16 {
+        for x in 0..32u16 {
+            let tile = if y < FLOOR_HEIGHT - 1 {
+                if x == JUDGEMENT_AREA {
+                    if y == JUDGEMENT_HIGH {
+                        6
+                    } else if y == JUDGEMENT_HIGH + 1 {
+                        8
+                    } else if y == JUDGEMENT_LOW {
+                        6
+                    } else if y == JUDGEMENT_LOW + 1 {
+                        8
+                    } else {
+                        0
+                    }
+                } else if x == JUDGEMENT_AREA + 1 {
+                    if y == JUDGEMENT_HIGH {
+                        7
+                    } else if y == JUDGEMENT_HIGH + 1 {
+                        9
+                    } else if y == JUDGEMENT_LOW {
+                        7
+                    } else if y == JUDGEMENT_LOW + 1 {
+                        9
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                }
+            } else if y < FLOOR_HEIGHT {
+                1
+            } else if y < FLOOR_HEIGHT + 1 {
+                2
+            } else {
+                3
+            };
+
+            map.set_tile(
+                &mut vram,
+                (x, y).into(),
+                &background::tiles.tiles,
+                background::tiles.tile_settings[tile],
+            );
+        }
+    }
+
+    map.commit(&mut vram);
+    map.show();
+
+    let mut input = agb::input::ButtonController::new();
+
+    let mut player = Player::new(&object_gfx);
+
+    let note_sprite = GRAPHICS.get("note").sprite(0);
+    let mut note_obj = object_gfx.object_sprite(note_sprite);
+    note_obj.show();
+    note_obj.set_position((10, 8 * JUDGEMENT_LOW as i32).into());
+
+    let mut position = Vector2D::new(200, 8 * JUDGEMENT_LOW as i32);
+
+    let mut frame = 0;
+    let vblank = agb::interrupt::VBlank::get();
+    loop {
+        input.update();
+
+        position.x -= 1;
+
+        if position.x <= JUDGEMENT_AREA as i32 * 8 {
+            let note_sprite = GRAPHICS.get("note_done").sprite(0);
+            note_obj.set_sprite(object_gfx.sprite(note_sprite));
+        }
+
+        if input.is_pressed(agb::input::Button::RIGHT) {
+            position.x += 2;
+        }
+
+        if input.is_just_pressed(agb::input::Button::A) {
+            player.set_animation(Animation::AttackLow);
+        }
+
+        if input.is_just_pressed(agb::input::Button::B) {
+            player.set_animation(Animation::AttackHigh);
+        }
+
+        //obj.set_sprite(object_gfx.sprite(tag.animation_sprite(image)));
+        note_obj.set_position(position);
+
+        player.draw(&object_gfx);
+
+        object_gfx.commit();
+
+        map.commit(&mut vram);
+        mixer.frame();
+
+        frame += 1;
+
+        if frame % 5 == 0 {
+            player.update();
+        }
+
+        vblank.wait_for_vblank();
+    }
 }
