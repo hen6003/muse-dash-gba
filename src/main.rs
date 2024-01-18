@@ -7,17 +7,22 @@
 
 use agb::{
     display::{
-        object::TagMap,
+        object::{self, TagMap},
         tiled::{RegularBackgroundSize, TileFormat, TiledMap},
     },
     fixnum::Vector2D,
-    include_aseprite, include_background_gfx, include_wav,
-    rng::RandomNumberGenerator,
-    sound::mixer::{self, Frequency, SoundChannel},
+    include_aseprite, include_background_gfx, include_wav, input,
+    sound::mixer::{Frequency, SoundChannel},
 };
+use note::{Note, Track};
 use player::{Animation, Player};
+use song::Song;
 
+extern crate alloc;
+
+mod note;
 mod player;
+mod song;
 
 //include!(concat!(env!("OUT_DIR"), "/maps.rs"));
 
@@ -38,7 +43,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let object_gfx = gba.display.object.get_managed();
     let (video_gfx, mut vram) = gba.display.video.tiled0();
 
-    // Then to play the sound:
+    // Music
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
 
     let mut channel = SoundChannel::new(SOUND);
@@ -47,6 +52,7 @@ fn main(mut gba: agb::Gba) -> ! {
 
     //mixer.enable();
 
+    // Background
     let mut map = video_gfx.background(
         agb::display::Priority::P0,
         RegularBackgroundSize::Background32x32,
@@ -109,39 +115,36 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut player = Player::new(&object_gfx);
 
-    let note_sprite = GRAPHICS.get("note").sprite(0);
-    let mut note_obj = object_gfx.object_sprite(note_sprite);
-    note_obj.show();
-    note_obj.set_position((10, 8 * JUDGEMENT_LOW as i32).into());
-
-    let mut position = Vector2D::new(200, 8 * JUDGEMENT_LOW as i32);
+    let mut song = Song::new();
 
     let mut frame = 0;
     let vblank = agb::interrupt::VBlank::get();
     loop {
+        //=== LOGIC ===
+
         input.update();
+        frame += 1;
 
-        position.x -= 1;
+        //if position.x <= JUDGEMENT_AREA as i32 * 8 {
+        //    let note_sprite = GRAPHICS.get("note_done").sprite(0);
+        //    note_obj.set_sprite(object_gfx.sprite(note_sprite));
+        //}
 
-        if position.x <= JUDGEMENT_AREA as i32 * 8 {
-            let note_sprite = GRAPHICS.get("note_done").sprite(0);
-            note_obj.set_sprite(object_gfx.sprite(note_sprite));
-        }
-
-        if input.is_pressed(agb::input::Button::RIGHT) {
-            position.x += 2;
-        }
-
-        if input.is_just_pressed(agb::input::Button::A) {
+        if input.is_just_pressed(agb::input::Button::R) {
             player.set_animation(Animation::AttackLow);
         }
 
-        if input.is_just_pressed(agb::input::Button::B) {
+        if input.is_just_pressed(agb::input::Button::L) {
             player.set_animation(Animation::AttackHigh);
         }
 
-        //obj.set_sprite(object_gfx.sprite(tag.animation_sprite(image)));
-        note_obj.set_position(position);
+        // Every 5th frame update the player sprite
+        if frame % 5 == 0 {
+            player.update();
+        }
+        song.update(&object_gfx, &input, frame);
+
+        //=== RENDER ===
 
         player.draw(&object_gfx);
 
@@ -149,12 +152,6 @@ fn main(mut gba: agb::Gba) -> ! {
 
         map.commit(&mut vram);
         mixer.frame();
-
-        frame += 1;
-
-        if frame % 5 == 0 {
-            player.update();
-        }
 
         vblank.wait_for_vblank();
     }

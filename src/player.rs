@@ -22,7 +22,7 @@ impl Default for AnimationState {
     }
 }
 
-const ATTACK_LOW_LENGTH: usize = 6;
+const ATTACK_LOW_LENGTH: usize = 5;
 const ATTACK_HIGH_LENGTH: usize = 4;
 impl AnimationState {
     fn animation(&self) -> &Animation {
