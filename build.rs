@@ -102,23 +102,23 @@ fn write_song<F>(mut file: F, song_name: &str, song: Map) -> io::Result<()>
 where
     F: Write,
 {
-    write!(file, "pub mod {} {{", song_name,)?;
+    write!(file, "pub mod {} {{\n", song_name,)?;
 
-    write!(file, "use agb::include_wav;",)?;
+    write!(file, "use agb::include_wav;\n",)?;
     write!(
         file,
-        "use crate::song_data::{{Track, Command, Fragment, SongData}};",
+        "use crate::song_data::{{Track, Command, Fragment, SongData}};\n",
     )?;
 
     write!(
         file,
-        "const SOUND: &[u8] = include_wav!(\"{}\");",
+        "const SOUND: &[u8] = include_wav!(\"{}\");\n",
         song.song_file.to_str().unwrap(),
     )?;
 
     write!(
         file,
-        "pub const SONG: SongData<{}> = SongData::new(\"{}\", [",
+        "pub const SONG: SongData<{}> = SongData::new(\"{}\", [\n",
         song.fragments.len(),
         song_name,
     )?;
@@ -129,17 +129,33 @@ where
 
         write!(
             file,
-            "Fragment::new({}, {}),",
+            "Fragment::new({}, {}),\n",
             fragment.command.to_ingame_command(),
             frame
         )?;
     }
 
-    write!(file, "], SOUND );",)?;
+    write!(file, "], SOUND );\n",)?;
 
-    write!(file, "}}",)?;
+    write!(file, "}}\n",)
+}
 
-    Ok(())
+fn write_songs_list<F>(mut file: F, names: &[String]) -> io::Result<()>
+where
+    F: Write,
+{
+    write!(file, "use crate::song_data::{{SongData, SongDataTrait}};\n",)?;
+    write!(
+        file,
+        "pub const SONGS: [&dyn SongDataTrait; {}] = [\n",
+        names.len()
+    )?;
+
+    for name in names {
+        write!(file, "&{}::SONG,\n", name)?;
+    }
+
+    write!(file, "];\n",)
 }
 
 fn main() {
@@ -151,7 +167,7 @@ fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("songs.rs");
 
-    let mut gen_file = fs::File::create(dest_path).unwrap();
+    let gen_file = fs::File::create(dest_path).unwrap();
 
     let mut names = Vec::new();
 
@@ -167,21 +183,7 @@ fn main() {
         }
     }
 
-    write!(
-        gen_file,
-        "use crate::song_data::{{SongData, SongDataTrait}};\n",
-    )
-    .unwrap();
-    write!(
-        gen_file,
-        "pub const SONGS: [&dyn SongDataTrait; {}] = [\n",
-        names.len()
-    )
-    .unwrap();
-    for name in names {
-        write!(gen_file, "&{}::SONG,\n", name).unwrap();
-    }
-    write!(gen_file, "];\n",).unwrap();
+    write_songs_list(&gen_file, &names).unwrap();
 
     println!("cargo:rerun-if-changed=songs/");
 }

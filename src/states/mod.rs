@@ -1,21 +1,36 @@
+use crate::song_data::SongDataTrait;
+
 use agb::{
     display::{
         object::OamManaged,
-        tiled::{MapLoan, RegularMap, VRamManager},
+        tiled::{MapLoan, RegularMap, Tiled1, VRamManager},
     },
     input::ButtonController,
     sound::mixer::Mixer,
 };
+use alloc::boxed::Box;
 
-mod song;
-
+pub use menu::MenuState;
 pub use song::SongState;
 
-pub trait State<'a> {
+mod menu;
+mod song;
+
+pub enum SetState {
+    Song(&'static dyn SongDataTrait),
+    Menu,
+}
+
+pub enum Callback {
+    None,
+    SetState(SetState),
+}
+
+pub trait State<'a, 'b> {
     fn init(
         &mut self,
         object_gfx: &'a OamManaged<'a>,
-        map: &mut MapLoan<RegularMap>,
+        tiled1: &'b Tiled1<'b>,
         vram: &mut VRamManager,
         mixer: &mut Mixer,
     );
@@ -23,9 +38,8 @@ pub trait State<'a> {
     fn update(
         &mut self,
         object_gfx: &'a OamManaged<'a>,
-        map: &MapLoan<RegularMap>,
-        vram: &VRamManager,
+        vram: &mut VRamManager,
         mixer: &Mixer,
         input: &ButtonController,
-    );
+    ) -> Callback;
 }

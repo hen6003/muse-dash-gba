@@ -1,10 +1,13 @@
 use agb::{
     display::{
         object::{OamManaged, TagMap},
-        tiled::{MapLoan, RegularMap, TiledMap, VRamManager},
+        tiled::{
+            MapLoan, RegularBackgroundSize, RegularMap, TileFormat, Tiled1, TiledMap, VRamManager,
+        },
+        Priority,
     },
     include_aseprite, include_background_gfx,
-    input::ButtonController,
+    input::{Button, ButtonController},
     sound::mixer::{Mixer, SoundChannel},
 };
 use alloc::boxed::Box;
@@ -16,7 +19,7 @@ use self::{
     song::Song,
 };
 
-use super::State;
+use super::{Callback, State};
 
 mod note;
 mod player;
@@ -32,16 +35,18 @@ const JUDGEMENT_AREA: u16 = 5;
 const JUDGEMENT_HIGH: u16 = 10;
 const JUDGEMENT_LOW: u16 = 13;
 
-pub struct SongState<'a> {
+pub struct SongState<'a, 'b> {
+    map: Option<MapLoan<'b, RegularMap>>,
     song_data: &'static dyn SongDataTrait,
     song: Song<'a>,
     player: Player<'a>,
     frame: usize,
 }
 
-impl<'a> SongState<'a> {
+impl<'a, 'b> SongState<'a, 'b> {
     pub fn new(song_data: &'static dyn SongDataTrait, object_gfx: &'a OamManaged) -> Self {
         Self {
+            map: None,
             song_data,
             song: Song::new(song_data),
             player: Player::new(&object_gfx),
@@ -50,16 +55,22 @@ impl<'a> SongState<'a> {
     }
 }
 
-impl<'a> State<'a> for SongState<'a> {
+impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
     fn init(
         &mut self,
         _object_gfx: &'a OamManaged,
-        map: &mut MapLoan<RegularMap>,
+        tiled1: &'b Tiled1<'b>,
         mut vram: &mut VRamManager,
         mixer: &mut Mixer,
     ) {
         // Background
         vram.set_background_palettes(background::PALETTES);
+
+        let mut map = tiled1.regular(
+            Priority::P0,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
 
         for y in 0..20u16 {
             for x in 0..32u16 {
@@ -111,6 +122,8 @@ impl<'a> State<'a> for SongState<'a> {
         map.commit(&mut vram);
         map.show();
 
+        self.map = Some(map);
+
         // Music
         mixer.enable();
 
@@ -122,18 +135,17 @@ impl<'a> State<'a> for SongState<'a> {
     fn update(
         &mut self,
         object_gfx: &'a OamManaged,
-        _map: &MapLoan<RegularMap>,
-        _vram: &VRamManager,
+        vram: &mut VRamManager,
         _mixer: &Mixer,
         input: &ButtonController,
-    ) {
+    ) -> Callback {
         self.frame += 1;
 
-        if input.is_just_pressed(agb::input::Button::R) {
+        if input.is_just_pressed(Button::R) {
             self.player.set_animation(Animation::AttackLow);
         }
 
-        if input.is_just_pressed(agb::input::Button::L) {
+        if input.is_just_pressed(Button::L) {
             self.player.set_animation(Animation::AttackHigh);
         }
 
@@ -144,5 +156,11 @@ impl<'a> State<'a> for SongState<'a> {
         self.song.update(&object_gfx, &input, self.frame);
 
         self.player.draw(&object_gfx);
+
+        if let Some(map) = &mut self.map {
+            map.commit(vram);
+        }
+
+        Callback::None
     }
 }
