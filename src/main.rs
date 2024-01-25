@@ -32,7 +32,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     let vblank = agb::interrupt::VBlank::get();
 
-    let mut state = states::SongState::new(&songs::MagicalWonderland::SONG, &object_gfx);
+    let mut state = states::SongState::new(songs::SONGS[0], &object_gfx);
 
     state.init(&object_gfx, &mut map, &mut vram, &mut mixer);
 

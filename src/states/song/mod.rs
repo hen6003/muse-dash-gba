@@ -7,8 +7,9 @@ use agb::{
     input::ButtonController,
     sound::mixer::{Mixer, SoundChannel},
 };
+use alloc::boxed::Box;
 
-use crate::song_data::SongData;
+use crate::song_data::SongDataTrait;
 
 use self::{
     player::{Animation, Player},
@@ -31,25 +32,25 @@ const JUDGEMENT_AREA: u16 = 5;
 const JUDGEMENT_HIGH: u16 = 10;
 const JUDGEMENT_LOW: u16 = 13;
 
-pub struct SongState<'a, const N: usize> {
-    song_data: &'static SongData<N>,
-    song: Song<'a, N>,
+pub struct SongState<'a> {
+    song_data: &'static dyn SongDataTrait,
+    song: Song<'a>,
     player: Player<'a>,
     frame: usize,
 }
 
-impl<'a, const N: usize> SongState<'a, N> {
-    pub fn new(song_data: &'static SongData<N>, object_gfx: &'a OamManaged) -> Self {
+impl<'a> SongState<'a> {
+    pub fn new(song_data: &'static dyn SongDataTrait, object_gfx: &'a OamManaged) -> Self {
         Self {
             song_data,
-            song: Song::new(&song_data),
+            song: Song::new(song_data),
             player: Player::new(&object_gfx),
             frame: 0,
         }
     }
 }
 
-impl<'a, const N: usize> State<'a> for SongState<'a, N> {
+impl<'a> State<'a> for SongState<'a> {
     fn init(
         &mut self,
         _object_gfx: &'a OamManaged,

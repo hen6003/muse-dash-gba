@@ -153,15 +153,35 @@ fn main() {
 
     let mut gen_file = fs::File::create(dest_path).unwrap();
 
+    let mut names = Vec::new();
+
     for file in fs::read_dir(songs_dir).unwrap() {
         let path = file.unwrap().path();
         let song_name = path.file_stem().unwrap().to_str().unwrap();
+
+        names.push(song_name.to_owned());
 
         match read_song(&path) {
             Ok(song) => write_song(&gen_file, song_name, song).unwrap(),
             Err(error) => error!("Failed to parse song {:?}: {}", path, error),
         }
     }
+
+    write!(
+        gen_file,
+        "use crate::song_data::{{SongData, SongDataTrait}};\n",
+    )
+    .unwrap();
+    write!(
+        gen_file,
+        "pub const SONGS: [&dyn SongDataTrait; {}] = [\n",
+        names.len()
+    )
+    .unwrap();
+    for name in names {
+        write!(gen_file, "&{}::SONG,\n", name).unwrap();
+    }
+    write!(gen_file, "];\n",).unwrap();
 
     println!("cargo:rerun-if-changed=songs/");
 }

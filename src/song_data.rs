@@ -29,6 +29,12 @@ impl Fragment {
     }
 }
 
+pub trait SongDataTrait {
+    fn name(&self) -> &'static str;
+    fn sound(&self) -> &[u8];
+    fn fragments(&self) -> &[Fragment];
+}
+
 pub struct SongData<const N: usize> {
     name: &'static str,
     fragments: [Fragment; N],
@@ -43,16 +49,18 @@ impl<const N: usize> SongData<N> {
             sound,
         }
     }
+}
 
-    pub fn name(&self) -> &'static str {
+impl<const N: usize> SongDataTrait for SongData<N> {
+    fn name(&self) -> &'static str {
         &self.name
     }
 
-    pub fn sound(&self) -> &[u8] {
+    fn sound(&self) -> &[u8] {
         &self.sound
     }
 
-    pub fn fragments(&self) -> &[Fragment] {
+    fn fragments(&self) -> &[Fragment] {
         &self.fragments
     }
 }

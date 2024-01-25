@@ -4,29 +4,19 @@ use agb::{
 };
 use alloc::vec::Vec;
 
-use crate::song_data::{Command, SongData, Track};
+use crate::song_data::{Command, SongDataTrait, Track};
 
 use super::{note::Note, JUDGEMENT_AREA};
 
-//const SOUND: &[u8] = include_wav!("assets/3R2 - Magical Wonderland (More colorful mix).wav");
-//
-//pub const SONG: SongData<2> = SongData::new(
-//    [
-//        Fragment::new(Command::Note(Track::Low), 2),
-//        Fragment::new(Command::Note(Track::High), 30),
-//    ],
-//    SOUND,
-//);
-
-pub struct Song<'a, const N: usize> {
-    song: &'static SongData<N>,
+pub struct Song<'a> {
+    song: &'static dyn SongDataTrait,
     notes: Vec<Note<'a>>,
     current_speed: i32,
     index: usize,
 }
 
-impl<'a, const N: usize> Song<'a, N> {
-    pub fn new(song: &'static SongData<N>) -> Self {
+impl<'a> Song<'a> {
+    pub fn new(song: &'static dyn SongDataTrait) -> Self {
         Self {
             song,
             notes: Vec::new(),
