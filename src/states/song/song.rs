@@ -13,6 +13,9 @@ pub struct Song<'a> {
     notes: Vec<Note<'a>>,
     current_speed: i32,
     index: usize,
+
+    score: usize,
+    combo: usize,
 }
 
 impl<'a> Song<'a> {
@@ -22,10 +25,18 @@ impl<'a> Song<'a> {
             notes: Vec::new(),
             current_speed: 1,
             index: 0,
+
+            score: 0,
+            combo: 0,
         }
     }
 
-    pub fn update(&mut self, object_gfx: &'a OamManaged, input: &ButtonController, frame: usize) {
+    pub fn update(
+        &mut self,
+        object_gfx: &'a OamManaged,
+        input: &ButtonController,
+        frame: usize,
+    ) -> bool {
         // Check for new notes
         if self.index < self.song.fragments().len() {
             let fragment = &self.song.fragments()[self.index];
@@ -45,6 +56,7 @@ impl<'a> Song<'a> {
         }
 
         let mut remove = None;
+        let mut update_text = false;
         for (i, note) in self.notes.iter_mut().enumerate() {
             note.update(self.current_speed);
 
@@ -61,8 +73,14 @@ impl<'a> Song<'a> {
                 };
 
                 if input.is_just_pressed(button) {
-                    note.hit(object_gfx);
+                    note.set_hit(object_gfx);
+                    self.combo += 1;
+                    self.score += calc_score(self.combo);
+                    update_text = true;
                 }
+            } else if !note.hit() && note.location() < JUDGEMENT_AREA as i32 * 8 {
+                self.combo = 0;
+                update_text = true;
             }
 
             note.draw();
@@ -71,5 +89,28 @@ impl<'a> Song<'a> {
         if let Some(index) = remove {
             self.notes.remove(index);
         }
+
+        update_text
     }
+
+    pub fn score(&self) -> usize {
+        self.score
+    }
+
+    pub fn combo(&self) -> usize {
+        self.combo
+    }
+}
+
+fn calc_score(combo: usize) -> usize {
+    let multiplier = match combo {
+        0..=9 => 100,
+        10..=19 => 110,
+        20..=29 => 120,
+        30..=39 => 130,
+        40..=49 => 140,
+        _ => 150,
+    };
+
+    multiplier // TODO: different note types
 }

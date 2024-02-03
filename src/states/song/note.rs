@@ -1,5 +1,8 @@
 use agb::{
-    display::object::{OamManaged, Object},
+    display::{
+        object::{OamManaged, Object},
+        Priority,
+    },
     fixnum::Vector2D,
 };
 
@@ -20,12 +23,14 @@ pub struct Note<'a> {
     object: Object<'a>,
     track: Track,
     location: i32,
+    hit: bool,
 }
 
 impl<'a> Note<'a> {
     pub fn new(object_gfx: &'a OamManaged, track: Track) -> Self {
         let sprite = GRAPHICS.get("note").sprite(0);
         let mut object = object_gfx.object_sprite(sprite);
+        object.set_priority(Priority::P2);
         object.set_position(Vector2D::new(agb::display::WIDTH, track.y_pos()));
         object.show();
 
@@ -33,6 +38,7 @@ impl<'a> Note<'a> {
             object,
             track,
             location: agb::display::WIDTH,
+            hit: false,
         }
     }
 
@@ -53,8 +59,13 @@ impl<'a> Note<'a> {
         &self.track
     }
 
-    pub fn hit(&mut self, object_gfx: &'a OamManaged) {
+    pub fn hit(&self) -> bool {
+        self.hit
+    }
+
+    pub fn set_hit(&mut self, object_gfx: &'a OamManaged) {
         let sprite = GRAPHICS.get("note_done").sprite(0);
         self.object.set_sprite(object_gfx.sprite(sprite));
+        self.hit = true
     }
 }

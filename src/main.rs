@@ -5,14 +5,7 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::{
-    display::{
-        object,
-        tiled::{RegularBackgroundSize, TileFormat, TiledMap},
-    },
-    input::ButtonController,
-    sound::mixer::Frequency,
-};
+use agb::{display::Font, include_font, input::ButtonController, sound::mixer::Frequency};
 
 use alloc::boxed::Box;
 use states::{Callback, SetState, State};
@@ -23,10 +16,13 @@ mod song_data;
 mod songs;
 mod states;
 
+const FONT: Font = include_font!("assets/80s-retro-future.ttf", 13);
+const BIG_FONT: Font = include_font!("assets/PixeloidSans-Bold.ttf", 9);
+
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
     let object_gfx = gba.display.object.get_managed();
-    let (mut video_gfx, mut vram) = gba.display.video.tiled1();
+    let (video_gfx, mut vram) = gba.display.video.tiled1();
     let mut input = ButtonController::new();
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     let vblank = agb::interrupt::VBlank::get();

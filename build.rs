@@ -9,11 +9,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use log::error;
-use log::info;
 use log::LevelFilter;
-
-const WIDTH: usize = 32;
-const HEIGHT: usize = 32;
 
 enum Command {
     Low,
@@ -144,7 +140,7 @@ fn write_songs_list<F>(mut file: F, names: &[String]) -> io::Result<()>
 where
     F: Write,
 {
-    write!(file, "use crate::song_data::{{SongData, SongDataTrait}};\n",)?;
+    write!(file, "use crate::song_data::{{SongDataTrait}};\n",)?;
     write!(
         file,
         "pub const SONGS: [&dyn SongDataTrait; {}] = [\n",

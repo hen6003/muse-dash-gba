@@ -6,22 +6,20 @@ use agb::{
         tiled::{
             MapLoan, RegularBackgroundSize, RegularMap, TileFormat, Tiled1, TiledMap, VRamManager,
         },
-        Font, Priority,
+        Priority,
     },
-    include_aseprite, include_background_gfx, include_font,
-    input::{Button, ButtonController, Tri},
-    sound::mixer::{Mixer, SoundChannel},
+    include_aseprite, include_background_gfx,
+    input::{Button, ButtonController},
+    sound::mixer::Mixer,
 };
 
-use crate::songs;
+use crate::{songs, FONT};
 
 use super::{Callback, State};
 
 include_background_gfx!(background, tiles => "assets/menu_tiles.aseprite");
 
 const GRAPHICS: &TagMap = include_aseprite!("assets/menu_selector.aseprite").tags();
-
-const FONT: Font = include_font!("assets/80s-retro-future.ttf", 13);
 
 pub struct MenuState<'a, 'b> {
     bg: Option<MapLoan<'b, RegularMap>>,
@@ -71,7 +69,13 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
 
         for y in 0..20u16 {
             for x in 0..32u16 {
-                let tile_id = 0;
+                let tile_id = if y == 0 {
+                    0
+                } else if y == 1 {
+                    1
+                } else {
+                    2
+                };
 
                 bg.set_tile(
                     &mut vram,
@@ -88,7 +92,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
         self.bg = Some(bg);
 
         let mut renderer = FONT.render_text((3u16, 0u16).into());
-        let mut writer = renderer.writer(2, 0, &mut text, vram);
+        let mut writer = renderer.writer(3, 0, &mut text, vram);
 
         write!(writer, "Select song:\n",).unwrap();
         for song in songs::SONGS {
@@ -105,7 +109,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
 
     fn update(
         &mut self,
-        object_gfx: &'a OamManaged,
+        _object_gfx: &'a OamManaged,
         vram: &mut VRamManager,
         _mixer: &Mixer,
         input: &ButtonController,
@@ -129,7 +133,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
             text.commit(vram);
         }
 
-        if input.is_just_pressed(Button::A) {
+        if input.is_just_pressed(Button::A) || input.is_just_pressed(Button::START) {
             Callback::SetState(super::SetState::Song(songs::SONGS[self.current_option]))
         } else {
             Callback::None

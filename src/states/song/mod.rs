@@ -1,5 +1,6 @@
 use agb::{
     display::{
+        font::TextRenderer,
         object::{OamManaged, TagMap},
         tiled::{
             MapLoan, RegularBackgroundSize, RegularMap, TileFormat, Tiled1, TiledMap, VRamManager,
@@ -10,25 +11,31 @@ use agb::{
     input::{Button, ButtonController},
     sound::mixer::{Mixer, SoundChannel},
 };
-use alloc::boxed::Box;
+use core::fmt::Write;
 
-use crate::song_data::SongDataTrait;
+use crate::{song_data::SongDataTrait, BIG_FONT};
 
 use self::{
+    pause::{Pause, PauseItem},
     player::{Animation, Player},
     song::Song,
 };
 
-use super::{Callback, State};
+use super::{Callback, SetState, State};
 
 mod note;
+mod pause;
 mod player;
 mod song;
 
 include_background_gfx!(background, tiles => "assets/background.aseprite");
 
-const GRAPHICS: &TagMap =
-    include_aseprite!("assets/new_player.aseprite", "assets/note.aseprite").tags();
+const GRAPHICS: &TagMap = include_aseprite!(
+    "assets/new_player.aseprite",
+    "assets/note.aseprite",
+    "assets/pause_select.aseprite"
+)
+.tags();
 
 const FLOOR_HEIGHT: u16 = 16;
 const JUDGEMENT_AREA: u16 = 5;
@@ -37,20 +44,26 @@ const JUDGEMENT_LOW: u16 = 13;
 
 pub struct SongState<'a, 'b> {
     map: Option<MapLoan<'b, RegularMap>>,
+    text: Option<(MapLoan<'b, RegularMap>, TextRenderer<'b>, TextRenderer<'b>)>,
     song_data: &'static dyn SongDataTrait,
     song: Song<'a>,
     player: Player<'a>,
+    pause: Pause<'a>,
     frame: usize,
+    redraw_text: bool,
 }
 
 impl<'a, 'b> SongState<'a, 'b> {
     pub fn new(song_data: &'static dyn SongDataTrait, object_gfx: &'a OamManaged) -> Self {
         Self {
             map: None,
+            text: None,
             song_data,
             song: Song::new(song_data),
             player: Player::new(&object_gfx),
+            pause: Pause::new(&object_gfx),
             frame: 0,
+            redraw_text: true,
         }
     }
 }
@@ -67,7 +80,13 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
         vram.set_background_palettes(background::PALETTES);
 
         let mut map = tiled1.regular(
-            Priority::P0,
+            Priority::P3,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
+
+        let mut text = tiled1.regular(
+            Priority::P1,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,
         );
@@ -77,25 +96,25 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                 let tile = if y < FLOOR_HEIGHT - 1 {
                     if x == JUDGEMENT_AREA {
                         if y == JUDGEMENT_HIGH {
-                            6
+                            4
                         } else if y == JUDGEMENT_HIGH + 1 {
-                            8
-                        } else if y == JUDGEMENT_LOW {
                             6
+                        } else if y == JUDGEMENT_LOW {
+                            4
                         } else if y == JUDGEMENT_LOW + 1 {
-                            8
+                            6
                         } else {
                             0
                         }
                     } else if x == JUDGEMENT_AREA + 1 {
                         if y == JUDGEMENT_HIGH {
-                            7
+                            5
                         } else if y == JUDGEMENT_HIGH + 1 {
-                            9
-                        } else if y == JUDGEMENT_LOW {
                             7
+                        } else if y == JUDGEMENT_LOW {
+                            5
                         } else if y == JUDGEMENT_LOW + 1 {
-                            9
+                            7
                         } else {
                             0
                         }
@@ -124,6 +143,14 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
 
         self.map = Some(map);
 
+        let score_renderer = BIG_FONT.render_text((0u16, 0u16).into());
+        let combo_renderer = BIG_FONT.render_text((13u16, 3u16).into());
+
+        text.commit(&mut vram);
+        text.show();
+
+        self.text = Some((text, score_renderer, combo_renderer));
+
         // Music
         mixer.enable();
 
@@ -139,26 +166,89 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
         _mixer: &Mixer,
         input: &ButtonController,
     ) -> Callback {
-        self.frame += 1;
-
-        if input.is_just_pressed(Button::R) {
-            self.player.set_animation(Animation::AttackLow);
+        if input.is_just_pressed(Button::START) {
+            self.pause.toggle();
+            self.redraw_text = true;
         }
 
-        if input.is_just_pressed(Button::L) {
-            self.player.set_animation(Animation::AttackHigh);
-        }
+        if !self.pause.paused() {
+            self.frame += 1;
+            if input.is_just_pressed(Button::R) {
+                self.player.set_animation(Animation::AttackLow);
+            }
 
-        // Every 5th frame update the player sprite
-        if self.frame % 5 == 0 {
-            self.player.update();
-        }
-        self.song.update(&object_gfx, &input, self.frame);
+            if input.is_just_pressed(Button::L) {
+                self.player.set_animation(Animation::AttackHigh);
+            }
 
-        self.player.draw(&object_gfx);
+            // Every 5th frame update the player sprite
+            if self.frame % 5 == 0 {
+                self.player.update();
+            }
+            if self.song.update(&object_gfx, &input, self.frame) {
+                self.redraw_text = true;
+            }
 
-        if let Some(map) = &mut self.map {
-            map.commit(vram);
+            self.player.draw(&object_gfx);
+
+            if let Some(map) = &mut self.map {
+                map.commit(vram);
+            }
+
+            if let Some((text, score_renderer, combo_renderer)) = &mut self.text {
+                if self.redraw_text {
+                    text.clear(vram);
+
+                    score_renderer.clear(vram);
+                    let mut writer = score_renderer.writer(3, 0, text, vram);
+
+                    write!(writer, " {}\n SCORE", self.song.score()).unwrap();
+
+                    writer.commit();
+
+                    combo_renderer.clear(vram);
+
+                    if self.song.combo() >= 5 {
+                        let mut writer = combo_renderer.writer(3, 0, text, vram);
+                        write!(writer, "{:^9}\nCOMBO", self.song.combo()).unwrap();
+                        writer.commit();
+                    }
+
+                    self.redraw_text = false;
+                }
+                text.commit(vram);
+            }
+        } else {
+            if input.is_just_pressed(Button::LEFT) {
+                self.pause.previous_item();
+            }
+
+            if input.is_just_pressed(Button::RIGHT) {
+                self.pause.next_item();
+            }
+
+            if input.is_just_pressed(Button::A) {
+                match self.pause.item() {
+                    PauseItem::Exit => return Callback::SetState(SetState::Menu),
+                    PauseItem::Restart => {
+                        return Callback::SetState(SetState::Song(self.song_data))
+                    }
+                    PauseItem::Resume => {
+                        self.pause.unpause();
+                        self.redraw_text = true;
+                    }
+                }
+            }
+
+            if input.is_just_pressed(Button::B) {
+                self.pause.unpause();
+                self.redraw_text = true;
+            }
+
+            if let Some((text, _, _)) = &mut self.text {
+                self.pause.render(text, vram);
+                text.commit(vram);
+            }
         }
 
         Callback::None

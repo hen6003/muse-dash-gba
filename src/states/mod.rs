@@ -3,12 +3,11 @@ use crate::song_data::SongDataTrait;
 use agb::{
     display::{
         object::OamManaged,
-        tiled::{MapLoan, RegularMap, Tiled1, VRamManager},
+        tiled::{Tiled1, VRamManager},
     },
     input::ButtonController,
     sound::mixer::Mixer,
 };
-use alloc::boxed::Box;
 
 pub use menu::MenuState;
 pub use song::SongState;
