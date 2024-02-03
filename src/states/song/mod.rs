@@ -9,7 +9,7 @@ use agb::{
     },
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
-    sound::mixer::{Mixer, SoundChannel},
+    sound::mixer::{ChannelId, Mixer, SoundChannel},
 };
 use core::fmt::Write;
 
@@ -49,6 +49,7 @@ pub struct SongState<'a, 'b> {
     song: Song<'a>,
     player: Player<'a>,
     pause: Pause<'a>,
+    music_channel: Option<ChannelId>,
     frame: usize,
     redraw_text: bool,
 }
@@ -62,6 +63,7 @@ impl<'a, 'b> SongState<'a, 'b> {
             song: Song::new(song_data),
             player: Player::new(&object_gfx),
             pause: Pause::new(&object_gfx),
+            music_channel: None,
             frame: 0,
             redraw_text: true,
         }
@@ -156,23 +158,24 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
 
         let mut channel = SoundChannel::new(self.song_data.sound());
         channel.stereo();
-        let _ = mixer.play_sound(channel);
+        self.music_channel = mixer.play_sound(channel);
     }
 
     fn update(
         &mut self,
         object_gfx: &'a OamManaged,
         vram: &mut VRamManager,
-        _mixer: &Mixer,
+        mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback {
-        if input.is_just_pressed(Button::START) {
-            self.pause.toggle();
-            self.redraw_text = true;
-        }
-
         if !self.pause.paused() {
             self.frame += 1;
+
+            if input.is_just_pressed(Button::START) {
+                self.pause
+                    .pause(mixer, self.music_channel.as_ref().unwrap());
+            }
+
             if input.is_just_pressed(Button::R) {
                 self.player.set_animation(Animation::AttackLow);
             }
@@ -234,14 +237,14 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                         return Callback::SetState(SetState::Song(self.song_data))
                     }
                     PauseItem::Resume => {
-                        self.pause.unpause();
+                        self.music_channel = self.pause.unpause(mixer, self.song_data.sound());
                         self.redraw_text = true;
                     }
                 }
             }
 
-            if input.is_just_pressed(Button::B) {
-                self.pause.unpause();
+            if input.is_just_pressed(Button::START) | input.is_just_pressed(Button::B) {
+                self.music_channel = self.pause.unpause(mixer, self.song_data.sound());
                 self.redraw_text = true;
             }
 

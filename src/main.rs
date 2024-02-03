@@ -36,7 +36,7 @@ fn main(mut gba: agb::Gba) -> ! {
         input.update();
 
         // Update current state
-        match state.update(&object_gfx, &mut vram, &mixer, &input) {
+        match state.update(&object_gfx, &mut vram, &mut mixer, &input) {
             Callback::None => (),
             Callback::SetState(new_state) => {
                 match new_state {

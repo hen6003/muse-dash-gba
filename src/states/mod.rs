@@ -38,7 +38,7 @@ pub trait State<'a, 'b> {
         &mut self,
         object_gfx: &'a OamManaged<'a>,
         vram: &mut VRamManager,
-        mixer: &Mixer,
+        mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback;
 }

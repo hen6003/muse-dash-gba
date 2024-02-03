@@ -3,7 +3,8 @@ use agb::{
         object::{OamManaged, Object},
         tiled::{MapLoan, RegularMap, VRamManager},
     },
-    fixnum::Vector2D,
+    fixnum::{Num, Vector2D},
+    sound::mixer::{ChannelId, Mixer, SoundChannel},
 };
 
 use super::{background, GRAPHICS};
@@ -45,6 +46,7 @@ impl PauseItem {
 pub struct Pause<'a> {
     object: Object<'a>, // Also used to track if paused
     item: PauseItem,
+    song_position: Option<Num<u32, 8>>,
 }
 
 impl<'a> Pause<'a> {
@@ -55,6 +57,7 @@ impl<'a> Pause<'a> {
         Self {
             object,
             item: PauseItem::Resume,
+            song_position: None,
         }
     }
 
@@ -62,21 +65,27 @@ impl<'a> Pause<'a> {
         self.object.is_visible()
     }
 
-    pub fn pause(&mut self) {
+    pub fn pause(&mut self, mixer: &mut Mixer, channel_id: &ChannelId) {
         self.object.set_position(self.menu_pos());
         self.object.show();
-    }
 
-    pub fn unpause(&mut self) {
-        self.object.hide();
-    }
-
-    pub fn toggle(&mut self) {
-        if self.paused() {
-            self.unpause()
-        } else {
-            self.pause()
+        if let Some(channel) = mixer.channel(channel_id) {
+            self.song_position = Some(channel.pos());
+            channel.stop();
         }
+    }
+
+    pub fn unpause(&mut self, mixer: &mut Mixer, song_data: &'static [u8]) -> Option<ChannelId> {
+        self.object.hide();
+
+        let mut channel = SoundChannel::new(song_data);
+
+        channel.stereo();
+        channel.set_pos(self.song_position.unwrap());
+
+        self.song_position = None;
+
+        mixer.play_sound(channel)
     }
 
     pub fn menu_pos(&self) -> Vector2D<i32> {

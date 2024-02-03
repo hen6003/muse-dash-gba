@@ -111,7 +111,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
         &mut self,
         _object_gfx: &'a OamManaged,
         vram: &mut VRamManager,
-        _mixer: &Mixer,
+        _mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback {
         if input.is_just_pressed(Button::UP) && self.current_option > 0 {
