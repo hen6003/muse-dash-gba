@@ -249,7 +249,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
             }
 
             if let Some((text, _, _)) = &mut self.text {
-                self.pause.render(text, vram);
+                self.pause.render(text, vram, object_gfx);
                 text.commit(vram);
             }
         }

@@ -9,7 +9,9 @@ use agb::{
 
 use super::{background, GRAPHICS};
 
-const PAUSE_TOP: u16 = 8;
+const PAUSE_TOP: u16 = 6;
+const PAUSE_IMAGE_TOP: u16 = PAUSE_TOP + 1;
+const PAUSE_IMAGE_BOTTOM: u16 = PAUSE_TOP + 2;
 const PAUSE_BOTTOM: u16 = PAUSE_TOP + 3;
 const PAUSE_LEFT: u16 = 11;
 const PAUSE_RIGHT: u16 = 18;
@@ -47,6 +49,7 @@ pub struct Pause<'a> {
     object: Object<'a>, // Also used to track if paused
     item: PauseItem,
     song_position: Option<Num<u32, 8>>,
+    frame: u8,
 }
 
 impl<'a> Pause<'a> {
@@ -58,6 +61,7 @@ impl<'a> Pause<'a> {
             object,
             item: PauseItem::Resume,
             song_position: None,
+            frame: 0,
         }
     }
 
@@ -89,7 +93,7 @@ impl<'a> Pause<'a> {
     }
 
     pub fn menu_pos(&self) -> Vector2D<i32> {
-        Vector2D::new(88 + 16 * self.item as i32, 64)
+        Vector2D::new(88 + 16 * self.item as i32, PAUSE_TOP as i32 * 8)
     }
 
     pub fn next_item(&mut self) {
@@ -106,7 +110,24 @@ impl<'a> Pause<'a> {
         self.item
     }
 
-    pub fn render(&mut self, map: &mut MapLoan<RegularMap>, mut vram: &mut VRamManager) {
+    pub fn render(
+        &mut self,
+        map: &mut MapLoan<RegularMap>,
+        mut vram: &mut VRamManager,
+        object_gfx: &'a OamManaged,
+    ) {
+        if self.frame == 80 {
+            self.frame = 0;
+        }
+
+        self.frame += 1;
+
+        let sprite = GRAPHICS
+            .get("pause_select")
+            .animation_sprite((self.frame / 20) as usize);
+
+        self.object.set_sprite(object_gfx.sprite(sprite));
+
         for y in PAUSE_TOP..=PAUSE_BOTTOM {
             for x in PAUSE_LEFT..=PAUSE_RIGHT {
                 let tile_id = if y == PAUSE_TOP && (x == PAUSE_LEFT || x == PAUSE_RIGHT)
@@ -120,20 +141,20 @@ impl<'a> Pause<'a> {
                 } else {
                     match (x, y) {
                         // Exit
-                        (12, 9) => EXIT_OFFSET + 0,
-                        (12, 10) => EXIT_OFFSET + 2,
-                        (13, 9) => EXIT_OFFSET + 1,
-                        (13, 10) => EXIT_OFFSET + 3,
+                        (12, PAUSE_IMAGE_TOP) => EXIT_OFFSET + 0,
+                        (12, PAUSE_IMAGE_BOTTOM) => EXIT_OFFSET + 2,
+                        (13, PAUSE_IMAGE_TOP) => EXIT_OFFSET + 1,
+                        (13, PAUSE_IMAGE_BOTTOM) => EXIT_OFFSET + 3,
                         // RESTART
-                        (14, 9) => RESTART_OFFSET + 0,
-                        (14, 10) => RESTART_OFFSET + 2,
-                        (15, 9) => RESTART_OFFSET + 1,
-                        (15, 10) => RESTART_OFFSET + 3,
+                        (14, PAUSE_IMAGE_TOP) => RESTART_OFFSET + 0,
+                        (14, PAUSE_IMAGE_BOTTOM) => RESTART_OFFSET + 2,
+                        (15, PAUSE_IMAGE_TOP) => RESTART_OFFSET + 1,
+                        (15, PAUSE_IMAGE_BOTTOM) => RESTART_OFFSET + 3,
                         // UNPAUSE
-                        (16, 9) => UNPAUSE_OFFSET + 0,
-                        (16, 10) => UNPAUSE_OFFSET + 2,
-                        (17, 9) => UNPAUSE_OFFSET + 1,
-                        (17, 10) => UNPAUSE_OFFSET + 3,
+                        (16, PAUSE_IMAGE_TOP) => UNPAUSE_OFFSET + 0,
+                        (16, PAUSE_IMAGE_BOTTOM) => UNPAUSE_OFFSET + 2,
+                        (17, PAUSE_IMAGE_TOP) => UNPAUSE_OFFSET + 1,
+                        (17, PAUSE_IMAGE_BOTTOM) => UNPAUSE_OFFSET + 3,
                         _ => unreachable!(),
                     }
                 };

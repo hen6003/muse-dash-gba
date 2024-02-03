@@ -79,8 +79,12 @@ impl<'a> Song<'a> {
                     update_text = true;
                 }
             } else if !note.hit() && note.location() < JUDGEMENT_AREA as i32 * 8 {
+                // Only redraw if needed (fixes slowdown)
+                if self.combo >= 5 {
+                    update_text = true;
+                }
+
                 self.combo = 0;
-                update_text = true;
             }
 
             note.draw();
