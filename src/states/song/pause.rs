@@ -3,7 +3,7 @@ use agb::{
         object::{OamManaged, Object},
         tiled::{MapLoan, RegularMap, VRamManager},
     },
-    fixnum::{Num, Vector2D},
+    fixnum::{num, Num, Vector2D},
     sound::mixer::{ChannelId, Mixer, SoundChannel},
 };
 
@@ -79,7 +79,7 @@ impl<'a> Pause<'a> {
         }
     }
 
-    pub fn unpause(&mut self, mixer: &mut Mixer, song_data: &'static [u8]) -> Option<ChannelId> {
+    pub fn resume(&mut self, mixer: &mut Mixer, song_data: &'static [u8]) -> Option<ChannelId> {
         self.object.hide();
 
         let mut channel = SoundChannel::new(song_data);

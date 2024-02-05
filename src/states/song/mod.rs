@@ -237,14 +237,14 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                         return Callback::SetState(SetState::Song(self.song_data))
                     }
                     PauseItem::Resume => {
-                        self.music_channel = self.pause.unpause(mixer, self.song_data.sound());
+                        self.music_channel = self.pause.resume(mixer, self.song_data.sound());
                         self.redraw_text = true;
                     }
                 }
             }
 
             if input.is_just_pressed(Button::START) | input.is_just_pressed(Button::B) {
-                self.music_channel = self.pause.unpause(mixer, self.song_data.sound());
+                self.music_channel = self.pause.resume(mixer, self.song_data.sound());
                 self.redraw_text = true;
             }
 
