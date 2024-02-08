@@ -18,7 +18,7 @@ use crate::{song_data::SongDataTrait, BIG_FONT};
 use self::{
     pause::{Pause, PauseItem},
     player::{Animation, Player},
-    song::Song,
+    song::{Song, SongResult},
 };
 
 use super::{Callback, SetState, State};
@@ -188,8 +188,16 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
             if self.frame % 5 == 0 {
                 self.player.update();
             }
-            if self.song.update(&object_gfx, &input, self.frame) {
-                self.redraw_text = true;
+
+            match self.song.update(&object_gfx, &input, self.frame) {
+                SongResult::UpdateText => self.redraw_text = true,
+                SongResult::Finished => {
+                    return Callback::SetState(SetState::ResultScreen(
+                        self.song_data,
+                        self.song.final_score(),
+                    ))
+                }
+                SongResult::None => (),
             }
 
             self.player.draw(&object_gfx);

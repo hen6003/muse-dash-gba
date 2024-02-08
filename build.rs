@@ -171,6 +171,8 @@ fn main() {
         let path = file.unwrap().path();
         let song_name = path.file_stem().unwrap().to_str().unwrap();
 
+        log::info!("Creating song: {}", song_name);
+
         names.push(song_name.to_owned());
 
         match read_song(&path) {

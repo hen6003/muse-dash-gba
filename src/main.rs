@@ -12,6 +12,7 @@ use states::{Callback, SetState, State};
 
 extern crate alloc;
 
+mod score;
 mod song_data;
 mod songs;
 mod states;
@@ -40,10 +41,13 @@ fn main(mut gba: agb::Gba) -> ! {
             Callback::None => (),
             Callback::SetState(new_state) => {
                 match new_state {
+                    SetState::Menu => state = Box::new(states::MenuState::new(&object_gfx)),
                     SetState::Song(song_data) => {
                         state = Box::new(states::SongState::new(song_data, &object_gfx))
                     }
-                    SetState::Menu => state = Box::new(states::MenuState::new(&object_gfx)),
+                    SetState::ResultScreen(song_data, score) => {
+                        state = Box::new(states::ResultState::new(song_data, score, &object_gfx))
+                    }
                 }
                 state.init(&object_gfx, &video_gfx, &mut vram, &mut mixer);
             }

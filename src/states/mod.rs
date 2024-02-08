@@ -1,4 +1,4 @@
-use crate::song_data::SongDataTrait;
+use crate::{score::Score, song_data::SongDataTrait};
 
 use agb::{
     display::{
@@ -10,14 +10,17 @@ use agb::{
 };
 
 pub use menu::MenuState;
+pub use result_screen::ResultState;
 pub use song::SongState;
 
 mod menu;
+mod result_screen;
 mod song;
 
 pub enum SetState {
     Song(&'static dyn SongDataTrait),
     Menu,
+    ResultScreen(&'static dyn SongDataTrait, Score),
 }
 
 pub enum Callback {

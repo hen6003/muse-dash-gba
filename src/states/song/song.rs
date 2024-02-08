@@ -4,9 +4,18 @@ use agb::{
 };
 use alloc::vec::Vec;
 
-use crate::song_data::{Command, SongDataTrait, Track};
+use crate::{
+    score::Score,
+    song_data::{Command, SongDataTrait, Track},
+};
 
-use super::{note::Note, JUDGEMENT_AREA};
+use super::{note::Note, SongState, JUDGEMENT_AREA};
+
+pub enum SongResult {
+    None,
+    UpdateText,
+    Finished,
+}
 
 pub struct Song<'a> {
     song: &'static dyn SongDataTrait,
@@ -16,6 +25,8 @@ pub struct Song<'a> {
 
     score: usize,
     combo: usize,
+    max_combo: usize,
+    hit: usize,
 }
 
 impl<'a> Song<'a> {
@@ -28,6 +39,8 @@ impl<'a> Song<'a> {
 
             score: 0,
             combo: 0,
+            max_combo: 0,
+            hit: 0,
         }
     }
 
@@ -36,7 +49,7 @@ impl<'a> Song<'a> {
         object_gfx: &'a OamManaged,
         input: &ButtonController,
         frame: usize,
-    ) -> bool {
+    ) -> SongResult {
         // Check for new notes
         if self.index < self.song.fragments().len() {
             let fragment = &self.song.fragments()[self.index];
@@ -53,10 +66,12 @@ impl<'a> Song<'a> {
                     Command::SetSpeed(speed) => self.current_speed = *speed,
                 }
             }
+        } else if self.notes.is_empty() {
+            return SongResult::Finished;
         }
 
         let mut remove = None;
-        let mut update_text = false;
+        let mut result = SongResult::None;
         for (i, note) in self.notes.iter_mut().enumerate() {
             note.update(self.current_speed);
 
@@ -74,14 +89,19 @@ impl<'a> Song<'a> {
 
                 if input.is_just_pressed(button) {
                     note.set_hit(object_gfx);
+                    self.hit += 1;
                     self.combo += 1;
                     self.score += calc_score(self.combo);
-                    update_text = true;
+                    result = SongResult::UpdateText;
                 }
             } else if !note.hit() && note.location() < JUDGEMENT_AREA as i32 * 8 {
                 // Only redraw if needed (fixes slowdown)
                 if self.combo >= 5 {
-                    update_text = true;
+                    result = SongResult::UpdateText;
+                }
+
+                if self.combo > self.max_combo {
+                    self.max_combo = self.combo;
                 }
 
                 self.combo = 0;
@@ -94,7 +114,7 @@ impl<'a> Song<'a> {
             self.notes.remove(index);
         }
 
-        update_text
+        result
     }
 
     pub fn score(&self) -> usize {
@@ -103,6 +123,18 @@ impl<'a> Song<'a> {
 
     pub fn combo(&self) -> usize {
         self.combo
+    }
+
+    pub fn final_score(&self) -> Score {
+        let accuracy = (self.hit * 100) / self.song.fragments().len();
+
+        let max_combo = if self.combo > self.max_combo {
+            self.combo
+        } else {
+            self.max_combo
+        };
+
+        Score::new(self.score, max_combo, accuracy as u8)
     }
 }
 
