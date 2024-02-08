@@ -240,19 +240,31 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
 
             if input.is_just_pressed(Button::A) {
                 match self.pause.item() {
-                    PauseItem::Exit => return Callback::SetState(SetState::Menu),
+                    PauseItem::Exit => {
+                        if let Some(channel) = mixer.channel(self.music_channel.as_ref().unwrap()) {
+                            channel.stop();
+                        }
+
+                        return Callback::SetState(SetState::Menu);
+                    }
                     PauseItem::Restart => {
-                        return Callback::SetState(SetState::Song(self.song_data))
+                        if let Some(channel) = mixer.channel(self.music_channel.as_ref().unwrap()) {
+                            channel.stop();
+                        }
+
+                        return Callback::SetState(SetState::Song(self.song_data));
                     }
                     PauseItem::Resume => {
-                        self.music_channel = self.pause.resume(mixer, self.song_data.sound());
+                        self.pause
+                            .resume(mixer, self.music_channel.as_ref().unwrap());
                         self.redraw_text = true;
                     }
                 }
             }
 
             if input.is_just_pressed(Button::START) | input.is_just_pressed(Button::B) {
-                self.music_channel = self.pause.resume(mixer, self.song_data.sound());
+                self.pause
+                    .resume(mixer, self.music_channel.as_ref().unwrap());
                 self.redraw_text = true;
             }
 

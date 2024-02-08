@@ -74,22 +74,16 @@ impl<'a> Pause<'a> {
         self.object.show();
 
         if let Some(channel) = mixer.channel(channel_id) {
-            self.song_position = Some(channel.pos());
-            channel.stop();
+            channel.pause();
         }
     }
 
-    pub fn resume(&mut self, mixer: &mut Mixer, song_data: &'static [u8]) -> Option<ChannelId> {
+    pub fn resume(&mut self, mixer: &mut Mixer, channel_id: &ChannelId) {
         self.object.hide();
 
-        let mut channel = SoundChannel::new(song_data);
-
-        channel.stereo();
-        channel.set_pos(self.song_position.unwrap());
-
-        self.song_position = None;
-
-        mixer.play_sound(channel)
+        if let Some(channel) = mixer.channel(channel_id) {
+            channel.resume();
+        }
     }
 
     pub fn menu_pos(&self) -> Vector2D<i32> {
