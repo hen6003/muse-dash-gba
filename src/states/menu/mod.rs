@@ -2,6 +2,7 @@ use core::fmt::Write;
 
 use agb::{
     display::{
+        font::TextRenderer,
         object::{OamManaged, Object, TagMap},
         tiled::{
             MapLoan, RegularBackgroundSize, RegularMap, TileFormat, Tiled1, TiledMap, VRamManager,
@@ -10,6 +11,7 @@ use agb::{
     },
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
+    println,
     sound::mixer::Mixer,
 };
 
@@ -21,11 +23,14 @@ include_background_gfx!(background, tiles => "assets/menu_tiles.aseprite");
 
 const GRAPHICS: &TagMap = include_aseprite!("assets/menu_selector.aseprite").tags();
 
+const MAX_SONGS: usize = 10;
+
 pub struct MenuState<'a, 'b> {
     bg: Option<MapLoan<'b, RegularMap>>,
-    text: Option<MapLoan<'b, RegularMap>>,
+    text: Option<(MapLoan<'b, RegularMap>, TextRenderer<'b>)>,
     selector_object: Object<'a>,
     current_option: usize,
+    menu_offset: usize,
 }
 
 impl<'a, 'b> MenuState<'a, 'b> {
@@ -40,6 +45,26 @@ impl<'a, 'b> MenuState<'a, 'b> {
             text: None,
             selector_object,
             current_option: 0,
+            menu_offset: 0,
+        }
+    }
+
+    pub fn redraw_songs(&mut self, mut vram: &mut VRamManager) {
+        if let Some((text, renderer)) = &mut self.text {
+            text.clear(vram);
+            renderer.clear(vram);
+
+            let mut writer = renderer.writer(3, 0, text, vram);
+
+            write!(writer, "Select song:\n",).unwrap();
+            for song in songs::SONGS.iter().skip(self.menu_offset).take(MAX_SONGS) {
+                write!(writer, "{}\n", song.name()).unwrap();
+            }
+
+            writer.commit();
+
+            text.commit(&mut vram);
+            text.show();
         }
     }
 }
@@ -61,7 +86,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
             TileFormat::FourBpp,
         );
 
-        let mut text = tiled1.regular(
+        let text = tiled1.regular(
             Priority::P1,
             RegularBackgroundSize::Background32x32,
             TileFormat::FourBpp,
@@ -91,20 +116,11 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
 
         self.bg = Some(bg);
 
-        let mut renderer = FONT.render_text((3u16, 0u16).into());
-        let mut writer = renderer.writer(3, 0, &mut text, vram);
+        let renderer = FONT.render_text((3u16, 0u16).into());
 
-        write!(writer, "Select song:\n",).unwrap();
-        for song in songs::SONGS {
-            write!(writer, "{}\n", song.name()).unwrap();
-        }
+        self.text = Some((text, renderer));
 
-        writer.commit();
-
-        text.commit(&mut vram);
-        text.show();
-
-        self.text = Some(text);
+        self.redraw_songs(vram);
     }
 
     fn update(
@@ -114,6 +130,8 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
         _mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback {
+        println!("{} - {}", self.current_option, self.menu_offset);
+
         if input.is_just_pressed(Button::UP) && self.current_option > 0 {
             self.current_option -= 1;
         }
@@ -122,14 +140,22 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
             self.current_option += 1;
         }
 
-        let y = ((self.current_option + 1) * 14) - 1;
+        if self.current_option >= self.menu_offset + MAX_SONGS {
+            self.menu_offset += 1;
+            self.redraw_songs(vram);
+        } else if self.current_option < self.menu_offset {
+            self.menu_offset -= 1;
+            self.redraw_songs(vram);
+        }
+
+        let y = ((self.current_option - self.menu_offset + 1) * 14) - 1;
         self.selector_object.set_position((4, y as i32).into());
 
         if let Some(bg) = &mut self.bg {
             bg.commit(vram);
         }
 
-        if let Some(text) = &mut self.text {
+        if let Some((text, _)) = &mut self.text {
             text.commit(vram);
         }
 
