@@ -51,13 +51,11 @@ impl SaveDataManager {
         save_manager.init_sram();
 
         let mut access = save_manager.access()?;
-        //let mut buf = [0; core::mem::size_of::<SaveData>()];
+        let mut buf = [0; core::mem::size_of::<SaveData>()];
 
-        //access.read(0, &mut buf).unwrap();
+        access.read(0, &mut buf).unwrap();
 
-        //let data: SaveData = unsafe { core::mem::transmute(buf) };
-
-        let data = SaveData::default();
+        let data: SaveData = unsafe { core::mem::transmute(buf) };
 
         Ok(Self { data, access })
     }
@@ -80,7 +78,7 @@ impl SaveDataManager {
 
     pub fn insert_score(&mut self, song_id: SongID, score: Score) {
         self.data.insert_score(song_id, score);
-        //self.save();
+        self.save();
     }
 
     pub fn get_scores(&mut self, song_id: SongID) -> [Option<Score>; SCORES_PER_SONG] {
