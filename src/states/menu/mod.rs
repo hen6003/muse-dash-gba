@@ -15,7 +15,10 @@ use agb::{
     sound::mixer::Mixer,
 };
 
-use crate::{songs, FONT};
+use crate::{
+    songs::{self, SongID},
+    FONT,
+};
 
 use super::{Callback, State};
 
@@ -160,7 +163,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
         }
 
         if input.is_just_pressed(Button::A) || input.is_just_pressed(Button::START) {
-            Callback::SetState(super::SetState::Song(songs::SONGS[self.current_option]))
+            Callback::SetState(super::SetState::Song(SongID::new(self.current_option)))
         } else {
             Callback::None
         }

@@ -136,15 +136,15 @@ where
     write!(file, "}}\n",)
 }
 
-fn write_songs_list<F>(mut file: F, names: &[String]) -> io::Result<()>
+fn write_songs_info<F>(mut file: F, names: &[String]) -> io::Result<()>
 where
     F: Write,
 {
     write!(file, "use crate::song_data::{{SongDataTrait}};\n",)?;
+    write!(file, "pub const SONGS_COUNT: usize = {};", names.len())?;
     write!(
         file,
-        "pub const SONGS: [&dyn SongDataTrait; {}] = [\n",
-        names.len()
+        "pub const SONGS: [&dyn SongDataTrait; SONGS_COUNT] = [\n",
     )?;
 
     for name in names {
@@ -181,7 +181,7 @@ fn main() {
         }
     }
 
-    write_songs_list(&gen_file, &names).unwrap();
+    write_songs_info(&gen_file, &names).unwrap();
 
     println!("cargo:rerun-if-changed=songs/");
 }

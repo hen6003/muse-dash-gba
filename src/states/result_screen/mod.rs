@@ -16,7 +16,8 @@ use agb::{
 use crate::{
     score::{Grade, Score},
     song_data::SongDataTrait,
-    songs, FONT,
+    songs::{self, SongID},
+    FONT,
 };
 
 use super::{Callback, State};
@@ -26,7 +27,7 @@ include_background_gfx!(background, tiles => "assets/result_tiles.aseprite");
 const GRAPHICS: &TagMap = include_aseprite!("assets/grades.aseprite").tags();
 
 pub struct ResultState<'a, 'b> {
-    song_data: &'static dyn SongDataTrait,
+    song_id: SongID,
     score: Score,
 
     bg: Option<MapLoan<'b, RegularMap>>,
@@ -36,11 +37,7 @@ pub struct ResultState<'a, 'b> {
 }
 
 impl<'a, 'b> ResultState<'a, 'b> {
-    pub fn new(
-        song_data: &'static dyn SongDataTrait,
-        score: Score,
-        object_gfx: &'a OamManaged,
-    ) -> Self {
+    pub fn new(song_id: SongID, score: Score, object_gfx: &'a OamManaged) -> Self {
         let grade = match score.grade() {
             Grade::SSS => "SSS",
             Grade::SS => "SS",
@@ -57,7 +54,7 @@ impl<'a, 'b> ResultState<'a, 'b> {
         selector_object.set_position((4, 66).into());
 
         Self {
-            song_data,
+            song_id,
             score,
 
             bg: None,
@@ -115,7 +112,7 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
         write!(
             writer,
             "Results - {}\n Score: {}\n Max combo: {}\n Accuracy: {}%",
-            self.song_data.name(),
+            self.song_id.name(),
             self.score.score(),
             self.score.max_combo(),
             self.score.accuracy()
@@ -133,29 +130,10 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
     fn update(
         &mut self,
         _object_gfx: &'a OamManaged,
-        vram: &mut VRamManager,
+        _vram: &mut VRamManager,
         _mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback {
-        //if input.is_just_pressed(Button::UP) && self.current_option > 0 {
-        //    self.current_option -= 1;
-        //}
-
-        //if input.is_just_pressed(Button::DOWN) && self.current_option < songs::SONGS.len() - 1 {
-        //    self.current_option += 1;
-        //}
-
-        //let y = ((self.current_option + 1) * 14) - 1;
-        //self.selector_object.set_position((4, y as i32).into());
-
-        //if let Some(bg) = &mut self.bg {
-        //    bg.commit(vram);
-        //}
-
-        //if let Some(text) = &mut self.text {
-        //    text.commit(vram);
-        //}
-
         if input.is_just_pressed(Button::A) || input.is_just_pressed(Button::START) {
             Callback::SetState(super::SetState::Menu)
         } else {

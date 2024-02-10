@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use crate::{
     score::Score,
     song_data::{Command, SongDataTrait, Track},
+    songs::SongID,
 };
 
 use super::{note::Note, SongState, JUDGEMENT_AREA};
@@ -18,7 +19,7 @@ pub enum SongResult {
 }
 
 pub struct Song<'a> {
-    song: &'static dyn SongDataTrait,
+    song_id: SongID,
     notes: Vec<Note<'a>>,
     current_speed: i32,
     index: usize,
@@ -30,9 +31,9 @@ pub struct Song<'a> {
 }
 
 impl<'a> Song<'a> {
-    pub fn new(song: &'static dyn SongDataTrait) -> Self {
+    pub fn new(song_id: SongID) -> Self {
         Self {
-            song,
+            song_id,
             notes: Vec::new(),
             current_speed: 1,
             index: 0,
@@ -51,8 +52,8 @@ impl<'a> Song<'a> {
         frame: usize,
     ) -> SongResult {
         // Check for new notes
-        if self.index < self.song.fragments().len() {
-            let fragment = &self.song.fragments()[self.index];
+        if self.index < self.song_id.fragments().len() {
+            let fragment = &self.song_id.fragments()[self.index];
 
             if fragment.frame() == frame {
                 self.index += 1;
@@ -126,7 +127,7 @@ impl<'a> Song<'a> {
     }
 
     pub fn final_score(&self) -> Score {
-        let accuracy = (self.hit * 100) / self.song.fragments().len();
+        let accuracy = (self.hit * 100) / self.song_id.fragments().len();
 
         let max_combo = if self.combo > self.max_combo {
             self.combo

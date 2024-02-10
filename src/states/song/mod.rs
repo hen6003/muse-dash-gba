@@ -13,7 +13,7 @@ use agb::{
 };
 use core::fmt::Write;
 
-use crate::{song_data::SongDataTrait, BIG_FONT};
+use crate::{song_data::SongDataTrait, songs::SongID, BIG_FONT};
 
 use self::{
     pause::{Pause, PauseItem},
@@ -45,7 +45,7 @@ const JUDGEMENT_LOW: u16 = 13;
 pub struct SongState<'a, 'b> {
     map: Option<MapLoan<'b, RegularMap>>,
     text: Option<(MapLoan<'b, RegularMap>, TextRenderer<'b>, TextRenderer<'b>)>,
-    song_data: &'static dyn SongDataTrait,
+    song_id: SongID,
     song: Song<'a>,
     player: Player<'a>,
     pause: Pause<'a>,
@@ -55,12 +55,12 @@ pub struct SongState<'a, 'b> {
 }
 
 impl<'a, 'b> SongState<'a, 'b> {
-    pub fn new(song_data: &'static dyn SongDataTrait, object_gfx: &'a OamManaged) -> Self {
+    pub fn new(song_id: SongID, object_gfx: &'a OamManaged) -> Self {
         Self {
             map: None,
             text: None,
-            song_data,
-            song: Song::new(song_data),
+            song_id,
+            song: Song::new(song_id),
             player: Player::new(&object_gfx),
             pause: Pause::new(&object_gfx),
             music_channel: None,
@@ -156,7 +156,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
         // Music
         mixer.enable();
 
-        let mut channel = SoundChannel::new(self.song_data.sound());
+        let mut channel = SoundChannel::new(self.song_id.sound());
         channel.stereo();
         self.music_channel = mixer.play_sound(channel);
     }
@@ -192,10 +192,14 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
             match self.song.update(&object_gfx, &input, self.frame) {
                 SongResult::UpdateText => self.redraw_text = true,
                 SongResult::Finished => {
+                    if let Some(channel) = mixer.channel(self.music_channel.as_ref().unwrap()) {
+                        channel.stop();
+                    }
+
                     return Callback::SetState(SetState::ResultScreen(
-                        self.song_data,
+                        self.song_id,
                         self.song.final_score(),
-                    ))
+                    ));
                 }
                 SongResult::None => (),
             }
@@ -252,7 +256,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                             channel.stop();
                         }
 
-                        return Callback::SetState(SetState::Song(self.song_data));
+                        return Callback::SetState(SetState::Song(self.song_id));
                     }
                     PauseItem::Resume => {
                         self.pause
