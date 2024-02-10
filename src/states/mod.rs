@@ -1,4 +1,4 @@
-use crate::{score::Score, song_data::SongDataTrait, songs::SongID};
+use crate::{save_data::SaveDataManager, score::Score, song_data::SongDataTrait, songs::SongID};
 
 use agb::{
     display::{
@@ -31,6 +31,7 @@ pub enum Callback {
 pub trait State<'a, 'b> {
     fn init(
         &mut self,
+        save_data: &mut SaveDataManager,
         object_gfx: &'a OamManaged<'a>,
         tiled1: &'b Tiled1<'b>,
         vram: &mut VRamManager,
@@ -39,6 +40,7 @@ pub trait State<'a, 'b> {
 
     fn update(
         &mut self,
+        save_data: &mut SaveDataManager,
         object_gfx: &'a OamManaged<'a>,
         vram: &mut VRamManager,
         mixer: &mut Mixer,

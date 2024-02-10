@@ -16,6 +16,7 @@ use agb::{
 };
 
 use crate::{
+    save_data::SaveDataManager,
     songs::{self, SongID},
     FONT,
 };
@@ -75,6 +76,7 @@ impl<'a, 'b> MenuState<'a, 'b> {
 impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
     fn init(
         &mut self,
+        _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
         mut vram: &mut VRamManager,
@@ -128,6 +130,7 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
 
     fn update(
         &mut self,
+        _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         vram: &mut VRamManager,
         _mixer: &mut Mixer,

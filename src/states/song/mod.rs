@@ -13,7 +13,7 @@ use agb::{
 };
 use core::fmt::Write;
 
-use crate::{song_data::SongDataTrait, songs::SongID, BIG_FONT};
+use crate::{save_data::SaveDataManager, song_data::SongDataTrait, songs::SongID, BIG_FONT};
 
 use self::{
     pause::{Pause, PauseItem},
@@ -73,6 +73,7 @@ impl<'a, 'b> SongState<'a, 'b> {
 impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
     fn init(
         &mut self,
+        _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
         mut vram: &mut VRamManager,
@@ -163,6 +164,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
 
     fn update(
         &mut self,
+        _save_data: &mut SaveDataManager,
         object_gfx: &'a OamManaged,
         vram: &mut VRamManager,
         mixer: &mut Mixer,

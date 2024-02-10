@@ -14,6 +14,7 @@ use agb::{
 };
 
 use crate::{
+    save_data::SaveDataManager,
     score::{Grade, Score},
     song_data::SongDataTrait,
     songs::{self, SongID},
@@ -51,7 +52,7 @@ impl<'a, 'b> ResultState<'a, 'b> {
         let sprite = GRAPHICS.get(grade).sprite(0);
         let mut selector_object = object_gfx.object_sprite(sprite);
         selector_object.show();
-        selector_object.set_position((4, 66).into());
+        selector_object.set_position((150, 66).into());
 
         Self {
             song_id,
@@ -68,6 +69,7 @@ impl<'a, 'b> ResultState<'a, 'b> {
 impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
     fn init(
         &mut self,
+        save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
         mut vram: &mut VRamManager,
@@ -106,6 +108,9 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
 
         self.bg = Some(bg);
 
+        // SAVE TO DISK
+        save_data.insert_score(self.song_id, self.score);
+
         let mut renderer = FONT.render_text((3u16, 0u16).into());
         let mut writer = renderer.writer(3, 0, &mut text, vram);
 
@@ -119,6 +124,13 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
         )
         .unwrap();
 
+        write!(writer, "\n\nScores:",).unwrap();
+        for score in save_data.get_scores(self.song_id) {
+            if let Some(score) = score {
+                write!(writer, "\n {}", score.score()).unwrap();
+            }
+        }
+
         writer.commit();
 
         text.commit(&mut vram);
@@ -129,6 +141,7 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
 
     fn update(
         &mut self,
+        _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         _vram: &mut VRamManager,
         _mixer: &mut Mixer,

@@ -23,4 +23,16 @@ impl SongID {
     }
 }
 
+impl From<usize> for SongID {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<SongID> for usize {
+    fn from(value: SongID) -> Self {
+        value.0
+    }
+}
+
 include!(concat!(env!("OUT_DIR"), "/songs.rs"));

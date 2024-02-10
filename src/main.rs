@@ -8,6 +8,7 @@
 use agb::{display::Font, include_font, input::ButtonController, sound::mixer::Frequency};
 
 use alloc::boxed::Box;
+use save_data::SaveDataManager;
 use states::{Callback, SetState, State};
 
 extern crate alloc;
@@ -28,17 +29,24 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut input = ButtonController::new();
     let mut mixer = gba.mixer.mixer(Frequency::Hz32768);
     let vblank = agb::interrupt::VBlank::get();
+    let mut save_data = SaveDataManager::load(&mut gba.save).unwrap();
 
     let mut state: Box<dyn State> = Box::new(states::MenuState::new(&object_gfx));
 
-    state.init(&object_gfx, &video_gfx, &mut vram, &mut mixer);
+    state.init(
+        &mut save_data,
+        &object_gfx,
+        &video_gfx,
+        &mut vram,
+        &mut mixer,
+    );
 
     loop {
         // Input
         input.update();
 
         // Update current state
-        match state.update(&object_gfx, &mut vram, &mut mixer, &input) {
+        match state.update(&mut save_data, &object_gfx, &mut vram, &mut mixer, &input) {
             Callback::None => (),
             Callback::SetState(new_state) => {
                 match new_state {
@@ -50,7 +58,13 @@ fn main(mut gba: agb::Gba) -> ! {
                         state = Box::new(states::ResultState::new(song_data, score, &object_gfx))
                     }
                 }
-                state.init(&object_gfx, &video_gfx, &mut vram, &mut mixer);
+                state.init(
+                    &mut save_data,
+                    &object_gfx,
+                    &video_gfx,
+                    &mut vram,
+                    &mut mixer,
+                );
             }
         }
 
