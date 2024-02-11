@@ -8,6 +8,32 @@ pub enum Grade {
     D,
 }
 
+impl Grade {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Self::SSS => "SSS",
+            Self::SS => "SS",
+            Self::S => "S",
+            Self::A => "A",
+            Self::B => "B",
+            Self::C => "C",
+            Self::D => "D",
+        }
+    }
+
+    pub fn to_print_str(&self) -> &str {
+        match self {
+            Self::SSS => "S",
+            Self::SS => "S",
+            Self::S => "S",
+            Self::A => "A",
+            Self::B => "B",
+            Self::C => "C",
+            Self::D => "D",
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub struct Score {
     score: usize,

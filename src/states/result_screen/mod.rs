@@ -33,26 +33,18 @@ pub struct ResultState<'a, 'b> {
 
     bg: Option<MapLoan<'b, RegularMap>>,
     text: Option<MapLoan<'b, RegularMap>>,
-    selector_object: Object<'a>,
-    current_option: usize,
+    grade_object: Object<'a>,
 }
 
 impl<'a, 'b> ResultState<'a, 'b> {
     pub fn new(song_id: SongID, score: Score, object_gfx: &'a OamManaged) -> Self {
-        let grade = match score.grade() {
-            Grade::SSS => "SSS",
-            Grade::SS => "SS",
-            Grade::S => "S",
-            Grade::A => "A",
-            Grade::B => "B",
-            Grade::C => "C",
-            Grade::D => "D",
-        };
+        let grade = score.grade();
+        let grade_str = grade.to_str();
 
-        let sprite = GRAPHICS.get(grade).sprite(0);
-        let mut selector_object = object_gfx.object_sprite(sprite);
-        selector_object.show();
-        selector_object.set_position((150, 66).into());
+        let sprite = GRAPHICS.get(grade_str).sprite(0);
+        let mut grade_object = object_gfx.object_sprite(sprite);
+        grade_object.show();
+        grade_object.set_position((150, 66).into());
 
         Self {
             song_id,
@@ -60,8 +52,7 @@ impl<'a, 'b> ResultState<'a, 'b> {
 
             bg: None,
             text: None,
-            selector_object,
-            current_option: 0,
+            grade_object,
         }
     }
 }
@@ -111,27 +102,46 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
         // SAVE TO DISK
         save_data.insert_score(self.song_id, self.score);
 
-        let mut renderer = FONT.render_text((3u16, 0u16).into());
-        let mut writer = renderer.writer(3, 0, &mut text, vram);
+        let mut renderer = FONT.render_text((0u16, 0u16).into());
+        {
+            let mut writer = renderer.writer(10, 0, &mut text, vram);
 
-        write!(
-            writer,
-            "Results - {}\n Score: {}\n Max combo: {}\n Accuracy: {}%",
-            self.song_id.name(),
-            self.score.score(),
-            self.score.max_combo(),
-            self.score.accuracy()
-        )
-        .unwrap();
+            write!(
+                writer,
+                " Results - {}\n  Score: {}\n  Max combo: {}\n  Accuracy: {}%\n",
+                self.song_id.name(),
+                self.score.score(),
+                self.score.max_combo(),
+                self.score.accuracy()
+            )
+            .unwrap();
 
-        write!(writer, "\n\nScores:",).unwrap();
-        for score in save_data.get_scores(self.song_id) {
-            if let Some(score) = score {
-                write!(writer, "\n {}", score.score()).unwrap();
-            }
+            write!(writer, "\n Scores:",).unwrap();
+
+            writer.commit();
         }
 
-        writer.commit();
+        for score in save_data.get_scores(self.song_id) {
+            if let Some(score) = score {
+                let color = match score.grade() {
+                    Grade::SSS => 9,
+                    Grade::SS => 8,
+                    Grade::S => 7,
+                    Grade::A => 6,
+                    Grade::B => 5,
+                    Grade::C => 4,
+                    Grade::D => 3,
+                };
+
+                let mut writer = renderer.writer(color, 0, &mut text, vram);
+                write!(writer, "\n  {}", score.grade().to_print_str()).unwrap();
+                writer.commit();
+
+                let mut writer = renderer.writer(10, 0, &mut text, vram);
+                write!(writer, " - {}", score.score()).unwrap();
+                writer.commit();
+            }
+        }
 
         text.commit(&mut vram);
         text.show();

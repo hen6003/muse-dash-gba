@@ -22,8 +22,6 @@ include_background_gfx!(background, tiles => "assets/menu_tiles.aseprite");
 
 const GRAPHICS: &TagMap = include_aseprite!("assets/menu_selector.aseprite").tags();
 
-const MAX_SONGS: usize = 10;
-
 const OPTIONS: [&'static str; 2] = ["Play", "Reset data"];
 
 pub struct MainMenuState<'a, 'b> {
