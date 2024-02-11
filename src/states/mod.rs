@@ -12,15 +12,18 @@ use agb::{
 pub use main_menu::MainMenuState;
 pub use result_screen::ResultState;
 pub use song::SongState;
+pub use song_info::SongInfoState;
 pub use song_menu::SongMenuState;
 
 mod main_menu;
 mod result_screen;
 mod song;
+mod song_info;
 mod song_menu;
 
 pub enum SetState {
     Song(SongID),
+    SongInfo(SongID),
     SongMenu,
     MainMenu,
     ResultScreen(SongID, Score),

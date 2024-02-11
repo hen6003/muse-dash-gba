@@ -136,8 +136,6 @@ impl<'a, 'b> State<'a, 'b> for SongMenuState<'a, 'b> {
         _mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback {
-        println!("{} - {}", self.current_option, self.menu_offset);
-
         if input.is_just_pressed(Button::UP) && self.current_option > 0 {
             self.current_option -= 1;
         }
@@ -166,7 +164,7 @@ impl<'a, 'b> State<'a, 'b> for SongMenuState<'a, 'b> {
         }
 
         if input.is_just_pressed(Button::A) || input.is_just_pressed(Button::START) {
-            Callback::SetState(super::SetState::Song(SongID::new(self.current_option)))
+            Callback::SetState(super::SetState::SongInfo(SongID::new(self.current_option)))
         } else if input.is_just_pressed(Button::B) {
             Callback::SetState(super::SetState::MainMenu)
         } else {

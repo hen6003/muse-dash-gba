@@ -52,11 +52,14 @@ fn main(mut gba: agb::Gba) -> ! {
                 match new_state {
                     SetState::MainMenu => state = Box::new(states::MainMenuState::new(&object_gfx)),
                     SetState::SongMenu => state = Box::new(states::SongMenuState::new(&object_gfx)),
-                    SetState::Song(song_data) => {
-                        state = Box::new(states::SongState::new(song_data, &object_gfx))
+                    SetState::Song(song_id) => {
+                        state = Box::new(states::SongState::new(song_id, &object_gfx))
                     }
-                    SetState::ResultScreen(song_data, score) => {
-                        state = Box::new(states::ResultState::new(song_data, score, &object_gfx))
+                    SetState::ResultScreen(song_id, score) => {
+                        state = Box::new(states::ResultState::new(song_id, score, &object_gfx))
+                    }
+                    SetState::SongInfo(song_id) => {
+                        state = Box::new(states::SongInfoState::new(song_id))
                     }
                 }
                 state.init(
