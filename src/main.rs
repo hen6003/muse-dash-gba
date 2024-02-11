@@ -31,7 +31,7 @@ fn main(mut gba: agb::Gba) -> ! {
     let vblank = agb::interrupt::VBlank::get();
     let mut save_data = SaveDataManager::load(&mut gba.save).unwrap();
 
-    let mut state: Box<dyn State> = Box::new(states::MenuState::new(&object_gfx));
+    let mut state: Box<dyn State> = Box::new(states::MainMenuState::new(&object_gfx));
 
     state.init(
         &mut save_data,
@@ -50,7 +50,8 @@ fn main(mut gba: agb::Gba) -> ! {
             Callback::None => (),
             Callback::SetState(new_state) => {
                 match new_state {
-                    SetState::Menu => state = Box::new(states::MenuState::new(&object_gfx)),
+                    SetState::MainMenu => state = Box::new(states::MainMenuState::new(&object_gfx)),
+                    SetState::SongMenu => state = Box::new(states::SongMenuState::new(&object_gfx)),
                     SetState::Song(song_data) => {
                         state = Box::new(states::SongState::new(song_data, &object_gfx))
                     }

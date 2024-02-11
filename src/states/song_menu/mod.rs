@@ -29,7 +29,7 @@ const GRAPHICS: &TagMap = include_aseprite!("assets/menu_selector.aseprite").tag
 
 const MAX_SONGS: usize = 10;
 
-pub struct MenuState<'a, 'b> {
+pub struct SongMenuState<'a, 'b> {
     bg: Option<MapLoan<'b, RegularMap>>,
     text: Option<(MapLoan<'b, RegularMap>, TextRenderer<'b>)>,
     selector_object: Object<'a>,
@@ -37,7 +37,7 @@ pub struct MenuState<'a, 'b> {
     menu_offset: usize,
 }
 
-impl<'a, 'b> MenuState<'a, 'b> {
+impl<'a, 'b> SongMenuState<'a, 'b> {
     pub fn new(object_gfx: &'a OamManaged) -> Self {
         let sprite = GRAPHICS.get("selector").sprite(0);
         let mut selector_object = object_gfx.object_sprite(sprite);
@@ -73,7 +73,7 @@ impl<'a, 'b> MenuState<'a, 'b> {
     }
 }
 
-impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
+impl<'a, 'b> State<'a, 'b> for SongMenuState<'a, 'b> {
     fn init(
         &mut self,
         _save_data: &mut SaveDataManager,
@@ -167,6 +167,8 @@ impl<'a, 'b> State<'a, 'b> for MenuState<'a, 'b> {
 
         if input.is_just_pressed(Button::A) || input.is_just_pressed(Button::START) {
             Callback::SetState(super::SetState::Song(SongID::new(self.current_option)))
+        } else if input.is_just_pressed(Button::B) {
+            Callback::SetState(super::SetState::MainMenu)
         } else {
             Callback::None
         }

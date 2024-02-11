@@ -104,6 +104,11 @@ impl SaveDataManager {
         let song_index: usize = song_id.into();
         self.data.scores[song_index]
     }
+
+    pub fn reset(&mut self) {
+        self.data = SaveData::default();
+        self.save();
+    }
 }
 
 fn get_hash(data: &SaveData) -> [u8; 8] {

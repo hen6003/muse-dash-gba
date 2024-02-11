@@ -251,7 +251,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                             channel.stop();
                         }
 
-                        return Callback::SetState(SetState::Menu);
+                        return Callback::SetState(SetState::SongMenu);
                     }
                     PauseItem::Restart => {
                         if let Some(channel) = mixer.channel(self.music_channel.as_ref().unwrap()) {

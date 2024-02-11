@@ -1,4 +1,4 @@
-use crate::{save_data::SaveDataManager, score::Score, song_data::SongDataTrait, songs::SongID};
+use crate::{save_data::SaveDataManager, score::Score, songs::SongID};
 
 use agb::{
     display::{
@@ -9,17 +9,20 @@ use agb::{
     sound::mixer::Mixer,
 };
 
-pub use menu::MenuState;
+pub use main_menu::MainMenuState;
 pub use result_screen::ResultState;
 pub use song::SongState;
+pub use song_menu::SongMenuState;
 
-mod menu;
+mod main_menu;
 mod result_screen;
 mod song;
+mod song_menu;
 
 pub enum SetState {
     Song(SongID),
-    Menu,
+    SongMenu,
+    MainMenu,
     ResultScreen(SongID, Score),
 }
 

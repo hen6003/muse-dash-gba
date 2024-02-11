@@ -2,6 +2,7 @@ use core::fmt::Write;
 
 use agb::{
     display::{
+        font::TextRenderer,
         object::{OamManaged, Object, TagMap},
         tiled::{
             MapLoan, RegularBackgroundSize, RegularMap, TileFormat, Tiled1, TiledMap, VRamManager,
@@ -13,51 +14,33 @@ use agb::{
     sound::mixer::Mixer,
 };
 
-use crate::{
-    save_data::SaveDataManager,
-    score::{Grade, Score},
-    song_data::SongDataTrait,
-    songs::{self, SongID},
-    FONT,
-};
+use crate::{save_data::SaveDataManager, FONT};
 
 use super::{Callback, State};
 
-include_background_gfx!(background, tiles => "assets/result_tiles.aseprite");
+include_background_gfx!(background, tiles => "assets/menu_tiles.aseprite");
 
-const GRAPHICS: &TagMap = include_aseprite!("assets/grades.aseprite").tags();
+const GRAPHICS: &TagMap = include_aseprite!("assets/menu_selector.aseprite").tags();
 
-pub struct ResultState<'a, 'b> {
-    song_id: SongID,
-    score: Score,
+const MAX_SONGS: usize = 10;
 
+const OPTIONS: [&'static str; 2] = ["Play", "Reset data"];
+
+pub struct MainMenuState<'a, 'b> {
     bg: Option<MapLoan<'b, RegularMap>>,
-    text: Option<MapLoan<'b, RegularMap>>,
+    text: Option<(MapLoan<'b, RegularMap>, TextRenderer<'b>)>,
     selector_object: Object<'a>,
     current_option: usize,
 }
 
-impl<'a, 'b> ResultState<'a, 'b> {
-    pub fn new(song_id: SongID, score: Score, object_gfx: &'a OamManaged) -> Self {
-        let grade = match score.grade() {
-            Grade::SSS => "SSS",
-            Grade::SS => "SS",
-            Grade::S => "S",
-            Grade::A => "A",
-            Grade::B => "B",
-            Grade::C => "C",
-            Grade::D => "D",
-        };
-
-        let sprite = GRAPHICS.get(grade).sprite(0);
+impl<'a, 'b> MainMenuState<'a, 'b> {
+    pub fn new(object_gfx: &'a OamManaged) -> Self {
+        let sprite = GRAPHICS.get("selector").sprite(0);
         let mut selector_object = object_gfx.object_sprite(sprite);
         selector_object.show();
-        selector_object.set_position((150, 66).into());
+        selector_object.set_position((4, 66).into());
 
         Self {
-            song_id,
-            score,
-
             bg: None,
             text: None,
             selector_object,
@@ -66,10 +49,10 @@ impl<'a, 'b> ResultState<'a, 'b> {
     }
 }
 
-impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
+impl<'a, 'b> State<'a, 'b> for MainMenuState<'a, 'b> {
     fn init(
         &mut self,
-        save_data: &mut SaveDataManager,
+        _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
         mut vram: &mut VRamManager,
@@ -92,7 +75,13 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
 
         for y in 0..20u16 {
             for x in 0..32u16 {
-                let tile_id = 0;
+                let tile_id = if y == 0 {
+                    0
+                } else if y == 1 {
+                    1
+                } else {
+                    2
+                };
 
                 bg.set_tile(
                     &mut vram,
@@ -108,27 +97,12 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
 
         self.bg = Some(bg);
 
-        // SAVE TO DISK
-        save_data.insert_score(self.song_id, self.score);
-
         let mut renderer = FONT.render_text((3u16, 0u16).into());
         let mut writer = renderer.writer(3, 0, &mut text, vram);
 
-        write!(
-            writer,
-            "Results - {}\n Score: {}\n Max combo: {}\n Accuracy: {}%",
-            self.song_id.name(),
-            self.score.score(),
-            self.score.max_combo(),
-            self.score.accuracy()
-        )
-        .unwrap();
-
-        write!(writer, "\n\nScores:",).unwrap();
-        for score in save_data.get_scores(self.song_id) {
-            if let Some(score) = score {
-                write!(writer, "\n {}", score.score()).unwrap();
-            }
+        write!(writer, "Main menu:\n",).unwrap();
+        for option in OPTIONS {
+            write!(writer, "{}\n", option).unwrap();
         }
 
         writer.commit();
@@ -136,19 +110,45 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
         text.commit(&mut vram);
         text.show();
 
-        self.text = Some(text);
+        self.text = Some((text, renderer));
     }
 
     fn update(
         &mut self,
-        _save_data: &mut SaveDataManager,
+        save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
-        _vram: &mut VRamManager,
+        vram: &mut VRamManager,
         _mixer: &mut Mixer,
         input: &ButtonController,
     ) -> Callback {
+        if input.is_just_pressed(Button::UP) && self.current_option > 0 {
+            self.current_option -= 1;
+        }
+
+        if input.is_just_pressed(Button::DOWN) && self.current_option < OPTIONS.len() {
+            self.current_option += 1;
+        }
+
+        let y = ((self.current_option + 1) * 14) - 1;
+        self.selector_object.set_position((4, y as i32).into());
+
+        if let Some(bg) = &mut self.bg {
+            bg.commit(vram);
+        }
+
+        if let Some((text, _)) = &mut self.text {
+            text.commit(vram);
+        }
+
         if input.is_just_pressed(Button::A) || input.is_just_pressed(Button::START) {
-            Callback::SetState(super::SetState::SongMenu)
+            match self.current_option {
+                0 => Callback::SetState(super::SetState::SongMenu),
+                1 => {
+                    save_data.reset();
+                    Callback::None
+                }
+                _ => unreachable!(),
+            }
         } else {
             Callback::None
         }
