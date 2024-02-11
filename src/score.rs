@@ -8,7 +8,7 @@ pub enum Grade {
     D,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash)]
 pub struct Score {
     score: usize,
     max_combo: usize,
