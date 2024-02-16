@@ -16,8 +16,7 @@ use agb::{
 use crate::{
     save_data::SaveDataManager,
     score::{Grade, Score},
-    song_data::SongDataTrait,
-    songs::{self, SongID},
+    songs::SongID,
     FONT,
 };
 
@@ -33,7 +32,7 @@ pub struct ResultState<'a, 'b> {
 
     bg: Option<MapLoan<'b, RegularMap>>,
     text: Option<MapLoan<'b, RegularMap>>,
-    grade_object: Object<'a>,
+    _grade_object: Object<'a>,
 }
 
 impl<'a, 'b> ResultState<'a, 'b> {
@@ -52,7 +51,7 @@ impl<'a, 'b> ResultState<'a, 'b> {
 
             bg: None,
             text: None,
-            grade_object,
+            _grade_object: grade_object,
         }
     }
 }
@@ -63,7 +62,7 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
         save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
-        mut vram: &mut VRamManager,
+        vram: &mut VRamManager,
         _mixer: &mut Mixer,
     ) {
         // Background
@@ -86,7 +85,7 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
                 let tile_id = 0;
 
                 bg.set_tile(
-                    &mut vram,
+                    vram,
                     (x, y).into(),
                     &background::tiles.tiles,
                     background::tiles.tile_settings[tile_id],
@@ -94,7 +93,7 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
             }
         }
 
-        bg.commit(&mut vram);
+        bg.commit(vram);
         bg.show();
 
         self.bg = Some(bg);
@@ -121,29 +120,27 @@ impl<'a, 'b> State<'a, 'b> for ResultState<'a, 'b> {
             writer.commit();
         }
 
-        for score in save_data.get_scores(self.song_id) {
-            if let Some(score) = score {
-                let color = match score.grade() {
-                    Grade::SSS => 9,
-                    Grade::SS => 8,
-                    Grade::S => 7,
-                    Grade::A => 6,
-                    Grade::B => 5,
-                    Grade::C => 4,
-                    Grade::D => 3,
-                };
+        for score in save_data.get_scores(self.song_id).into_iter().flatten() {
+            let color = match score.grade() {
+                Grade::SSS => 9,
+                Grade::SS => 8,
+                Grade::S => 7,
+                Grade::A => 6,
+                Grade::B => 5,
+                Grade::C => 4,
+                Grade::D => 3,
+            };
 
-                let mut writer = renderer.writer(color, 0, &mut text, vram);
-                write!(writer, "\n  {}", score.grade().to_print_str()).unwrap();
-                writer.commit();
+            let mut writer = renderer.writer(color, 0, &mut text, vram);
+            write!(writer, "\n  {}", score.grade().to_print_str()).unwrap();
+            writer.commit();
 
-                let mut writer = renderer.writer(10, 0, &mut text, vram);
-                write!(writer, " - {}", score.score()).unwrap();
-                writer.commit();
-            }
+            let mut writer = renderer.writer(10, 0, &mut text, vram);
+            write!(writer, " - {}", score.score()).unwrap();
+            writer.commit();
         }
 
-        text.commit(&mut vram);
+        text.commit(vram);
         text.show();
 
         self.text = Some(text);

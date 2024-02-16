@@ -53,11 +53,11 @@ impl<const N: usize> SongData<N> {
 
 impl<const N: usize> SongDataTrait for SongData<N> {
     fn name(&self) -> &'static str {
-        &self.name
+        self.name
     }
 
     fn sound(&self) -> &[u8] {
-        &self.sound
+        self.sound
     }
 
     fn fragments(&self) -> &[Fragment] {

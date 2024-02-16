@@ -7,6 +7,8 @@ use crate::{
 use agb::save;
 
 const SCORES_PER_SONG: usize = 5;
+const HASH_SIZE: usize = core::mem::size_of::<u64>();
+const SAVE_DATA_SIZE: usize = core::mem::size_of::<SaveData>();
 
 #[derive(Hash)]
 pub struct SaveData {
@@ -54,11 +56,11 @@ impl SaveDataManager {
         save_manager.init_sram();
 
         let mut access = save_manager.access()?;
-        let mut hash_buf = [0; 8];
-        let mut data_buf = [0; core::mem::size_of::<SaveData>()];
+        let mut hash_buf = [0; HASH_SIZE];
+        let mut data_buf = [0; SAVE_DATA_SIZE];
 
         access.read(0, &mut hash_buf).unwrap();
-        access.read(8, &mut data_buf).unwrap();
+        access.read(HASH_SIZE, &mut data_buf).unwrap();
 
         let data: SaveData = unsafe { core::mem::transmute(data_buf) };
 
@@ -80,19 +82,16 @@ impl SaveDataManager {
 
         let mut writer = self
             .access
-            .prepare_write(0..(8 + core::mem::size_of::<SaveData>()))
+            .prepare_write(0..(HASH_SIZE + SAVE_DATA_SIZE))
             .unwrap();
 
         writer.write_and_verify(0, &hash).unwrap();
 
         let data = unsafe {
-            core::slice::from_raw_parts(
-                &self.data as *const _ as *const u8,
-                core::mem::size_of::<SaveData>(),
-            )
+            core::slice::from_raw_parts(&self.data as *const _ as *const u8, SAVE_DATA_SIZE)
         };
 
-        writer.write_and_verify(8, data).unwrap();
+        writer.write_and_verify(HASH_SIZE, data).unwrap();
     }
 
     pub fn insert_score(&mut self, song_id: SongID, score: Score) {
@@ -111,7 +110,7 @@ impl SaveDataManager {
     }
 }
 
-fn get_hash(data: &SaveData) -> [u8; 8] {
+fn get_hash(data: &SaveData) -> [u8; HASH_SIZE] {
     let mut hasher = rustc_hash::FxHasher::default();
     data.hash(&mut hasher);
     let hash = hasher.finish();

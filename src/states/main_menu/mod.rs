@@ -22,7 +22,7 @@ include_background_gfx!(background, tiles => "assets/menu_tiles.aseprite");
 
 const GRAPHICS: &TagMap = include_aseprite!("assets/menu_selector.aseprite").tags();
 
-const OPTIONS: [&'static str; 2] = ["Play", "Reset data"];
+const OPTIONS: [&str; 2] = ["Play", "Reset data"];
 
 pub struct MainMenuState<'a, 'b> {
     bg: Option<MapLoan<'b, RegularMap>>,
@@ -53,7 +53,7 @@ impl<'a, 'b> State<'a, 'b> for MainMenuState<'a, 'b> {
         _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
-        mut vram: &mut VRamManager,
+        vram: &mut VRamManager,
         _mixer: &mut Mixer,
     ) {
         // Background
@@ -82,7 +82,7 @@ impl<'a, 'b> State<'a, 'b> for MainMenuState<'a, 'b> {
                 };
 
                 bg.set_tile(
-                    &mut vram,
+                    vram,
                     (x, y).into(),
                     &background::tiles.tiles,
                     background::tiles.tile_settings[tile_id],
@@ -90,7 +90,7 @@ impl<'a, 'b> State<'a, 'b> for MainMenuState<'a, 'b> {
             }
         }
 
-        bg.commit(&mut vram);
+        bg.commit(vram);
         bg.show();
 
         self.bg = Some(bg);
@@ -98,14 +98,14 @@ impl<'a, 'b> State<'a, 'b> for MainMenuState<'a, 'b> {
         let mut renderer = FONT.render_text((3u16, 0u16).into());
         let mut writer = renderer.writer(3, 0, &mut text, vram);
 
-        write!(writer, "Main menu:\n",).unwrap();
+        writeln!(writer, "Main menu:",).unwrap();
         for option in OPTIONS {
-            write!(writer, "{}\n", option).unwrap();
+            writeln!(writer, "{}", option).unwrap();
         }
 
         writer.commit();
 
-        text.commit(&mut vram);
+        text.commit(vram);
         text.show();
 
         self.text = Some((text, renderer));

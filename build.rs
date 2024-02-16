@@ -72,12 +72,12 @@ fn read_fragments(path: &Path) -> io::Result<Vec<Fragment>> {
         let line = line?;
 
         let (delay, command) = line
-            .split_once(":")
+            .split_once(':')
             .ok_or(io::Error::other(FragmentError::InvalidLine))?;
 
-        let command = Command::from_str(command).map_err(|err| io::Error::other(err))?;
+        let command = Command::from_str(command).map_err(io::Error::other)?;
 
-        let delay: f32 = delay.parse().map_err(|err| io::Error::other(err))?;
+        let delay: f32 = delay.parse().map_err(io::Error::other)?;
 
         let fragment = Fragment { command, delay };
 
@@ -98,23 +98,23 @@ fn write_song<F>(mut file: F, song_name: &str, song: Map) -> io::Result<()>
 where
     F: Write,
 {
-    write!(file, "pub mod {} {{\n", song_name,)?;
+    writeln!(file, "pub mod {} {{", song_name,)?;
 
-    write!(file, "use agb::include_wav;\n",)?;
-    write!(
+    writeln!(file, "use agb::include_wav;",)?;
+    writeln!(
         file,
-        "use crate::song_data::{{Track, Command, Fragment, SongData}};\n",
+        "use crate::song_data::{{Track, Command, Fragment, SongData}};",
     )?;
 
-    write!(
+    writeln!(
         file,
-        "const SOUND: &[u8] = include_wav!(\"{}\");\n",
+        "const SOUND: &[u8] = include_wav!(\"{}\");",
         song.song_file.to_str().unwrap(),
     )?;
 
-    write!(
+    writeln!(
         file,
-        "pub const SONG: SongData<{}> = SongData::new(\"{}\", [\n",
+        "pub const SONG: SongData<{}> = SongData::new(\"{}\", [",
         song.fragments.len(),
         song_name,
     )?;
@@ -123,35 +123,35 @@ where
         let frame = ((fragment.delay * 60.0) / 1000.0) - 146.0;
         let frame: usize = frame.round() as usize;
 
-        write!(
+        writeln!(
             file,
-            "Fragment::new({}, {}),\n",
+            "Fragment::new({}, {}),",
             fragment.command.to_ingame_command(),
             frame
         )?;
     }
 
-    write!(file, "], SOUND );\n",)?;
+    writeln!(file, "], SOUND );",)?;
 
-    write!(file, "}}\n",)
+    writeln!(file, "}}",)
 }
 
 fn write_songs_info<F>(mut file: F, names: &[String]) -> io::Result<()>
 where
     F: Write,
 {
-    write!(file, "use crate::song_data::{{SongDataTrait}};\n",)?;
-    write!(file, "pub const SONGS_COUNT: usize = {};", names.len())?;
-    write!(
+    writeln!(file, "use crate::song_data::{{SongDataTrait}};",)?;
+    writeln!(file, "pub const SONGS_COUNT: usize = {};", names.len())?;
+    writeln!(
         file,
-        "pub const SONGS: [&dyn SongDataTrait; SONGS_COUNT] = [\n",
+        "pub const SONGS: [&dyn SongDataTrait; SONGS_COUNT] = [",
     )?;
 
     for name in names {
-        write!(file, "&{}::SONG,\n", name)?;
+        writeln!(file, "&{}::SONG,", name)?;
     }
 
-    write!(file, "];\n",)
+    write!(file, "];",)
 }
 
 fn main() {

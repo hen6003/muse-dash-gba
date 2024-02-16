@@ -6,11 +6,11 @@ use alloc::vec::Vec;
 
 use crate::{
     score::Score,
-    song_data::{Command, SongDataTrait, Track},
+    song_data::{Command, Track},
     songs::SongID,
 };
 
-use super::{note::Note, SongState, JUDGEMENT_AREA};
+use super::{note::Note, JUDGEMENT_AREA};
 
 pub enum SongResult {
     None,

@@ -11,7 +11,6 @@ use agb::{
     },
     include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
-    println,
     sound::mixer::Mixer,
 };
 
@@ -53,21 +52,21 @@ impl<'a, 'b> SongMenuState<'a, 'b> {
         }
     }
 
-    pub fn redraw_songs(&mut self, mut vram: &mut VRamManager) {
+    pub fn redraw_songs(&mut self, vram: &mut VRamManager) {
         if let Some((text, renderer)) = &mut self.text {
             text.clear(vram);
             renderer.clear(vram);
 
             let mut writer = renderer.writer(3, 0, text, vram);
 
-            write!(writer, "Select song:\n",).unwrap();
+            writeln!(writer, "Select song:",).unwrap();
             for song in songs::SONGS.iter().skip(self.menu_offset).take(MAX_SONGS) {
-                write!(writer, "{}\n", song.name()).unwrap();
+                writeln!(writer, "{}", song.name()).unwrap();
             }
 
             writer.commit();
 
-            text.commit(&mut vram);
+            text.commit(vram);
             text.show();
         }
     }
@@ -79,7 +78,7 @@ impl<'a, 'b> State<'a, 'b> for SongMenuState<'a, 'b> {
         _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
-        mut vram: &mut VRamManager,
+        vram: &mut VRamManager,
         _mixer: &mut Mixer,
     ) {
         // Background
@@ -108,7 +107,7 @@ impl<'a, 'b> State<'a, 'b> for SongMenuState<'a, 'b> {
                 };
 
                 bg.set_tile(
-                    &mut vram,
+                    vram,
                     (x, y).into(),
                     &background::tiles.tiles,
                     background::tiles.tile_settings[tile_id],
@@ -116,7 +115,7 @@ impl<'a, 'b> State<'a, 'b> for SongMenuState<'a, 'b> {
             }
         }
 
-        bg.commit(&mut vram);
+        bg.commit(vram);
         bg.show();
 
         self.bg = Some(bg);

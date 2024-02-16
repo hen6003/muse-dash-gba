@@ -2,30 +2,24 @@ use core::{fmt::Write, marker::PhantomData};
 
 use agb::{
     display::{
-        object::{OamManaged, Object, TagMap},
+        object::{OamManaged, Object},
         tiled::{
             MapLoan, RegularBackgroundSize, RegularMap, TileFormat, Tiled1, TiledMap, VRamManager,
         },
         Priority,
     },
-    include_aseprite, include_background_gfx,
+    include_background_gfx,
     input::{Button, ButtonController},
     sound::mixer::Mixer,
 };
 
-use crate::{
-    save_data::SaveDataManager,
-    score::{Grade, Score},
-    song_data::SongDataTrait,
-    songs::{self, SongID},
-    FONT,
-};
+use crate::{save_data::SaveDataManager, score::Grade, songs::SongID, FONT};
 
 use super::{Callback, State};
 
 include_background_gfx!(background, tiles => "assets/result_tiles.aseprite");
 
-const GRAPHICS: &TagMap = include_aseprite!("assets/grades.aseprite").tags();
+//const GRAPHICS: &TagMap = include_aseprite!("assets/grades.aseprite").tags();
 
 pub struct SongInfoState<'a, 'b> {
     song_id: SongID,
@@ -55,7 +49,7 @@ impl<'a, 'b> State<'a, 'b> for SongInfoState<'a, 'b> {
         save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
-        mut vram: &mut VRamManager,
+        vram: &mut VRamManager,
         _mixer: &mut Mixer,
     ) {
         // Background
@@ -78,7 +72,7 @@ impl<'a, 'b> State<'a, 'b> for SongInfoState<'a, 'b> {
                 let tile_id = 0;
 
                 bg.set_tile(
-                    &mut vram,
+                    vram,
                     (x, y).into(),
                     &background::tiles.tiles,
                     background::tiles.tile_settings[tile_id],
@@ -86,7 +80,7 @@ impl<'a, 'b> State<'a, 'b> for SongInfoState<'a, 'b> {
             }
         }
 
-        bg.commit(&mut vram);
+        bg.commit(vram);
         bg.show();
 
         self.bg = Some(bg);
@@ -95,36 +89,34 @@ impl<'a, 'b> State<'a, 'b> for SongInfoState<'a, 'b> {
         {
             let mut writer = renderer.writer(10, 0, &mut text, vram);
 
-            write!(writer, " {}\n", self.song_id.name(),).unwrap();
+            writeln!(writer, " {}\n", self.song_id.name(),).unwrap();
 
-            write!(writer, "\n Scores:",).unwrap();
+            write!(writer, " Scores:",).unwrap();
 
             writer.commit();
         }
 
-        for score in save_data.get_scores(self.song_id) {
-            if let Some(score) = score {
-                let color = match score.grade() {
-                    Grade::SSS => 9,
-                    Grade::SS => 8,
-                    Grade::S => 7,
-                    Grade::A => 6,
-                    Grade::B => 5,
-                    Grade::C => 4,
-                    Grade::D => 3,
-                };
+        for score in save_data.get_scores(self.song_id).into_iter().flatten() {
+            let color = match score.grade() {
+                Grade::SSS => 9,
+                Grade::SS => 8,
+                Grade::S => 7,
+                Grade::A => 6,
+                Grade::B => 5,
+                Grade::C => 4,
+                Grade::D => 3,
+            };
 
-                let mut writer = renderer.writer(color, 0, &mut text, vram);
-                write!(writer, "\n  {}", score.grade().to_print_str()).unwrap();
-                writer.commit();
+            let mut writer = renderer.writer(color, 0, &mut text, vram);
+            write!(writer, "\n  {}", score.grade().to_print_str()).unwrap();
+            writer.commit();
 
-                let mut writer = renderer.writer(10, 0, &mut text, vram);
-                write!(writer, " - {}", score.score()).unwrap();
-                writer.commit();
-            }
+            let mut writer = renderer.writer(10, 0, &mut text, vram);
+            write!(writer, " - {}", score.score()).unwrap();
+            writer.commit();
         }
 
-        text.commit(&mut vram);
+        text.commit(vram);
         text.show();
 
         self.text = Some(text);

@@ -3,8 +3,8 @@ use agb::{
         object::{OamManaged, Object},
         tiled::{MapLoan, RegularMap, VRamManager},
     },
-    fixnum::{num, Num, Vector2D},
-    sound::mixer::{ChannelId, Mixer, SoundChannel},
+    fixnum::Vector2D,
+    sound::mixer::{ChannelId, Mixer},
 };
 
 use super::{background, GRAPHICS};
@@ -48,7 +48,6 @@ impl PauseItem {
 pub struct Pause<'a> {
     object: Object<'a>, // Also used to track if paused
     item: PauseItem,
-    song_position: Option<Num<u32, 8>>,
     frame: u8,
 }
 
@@ -60,7 +59,6 @@ impl<'a> Pause<'a> {
         Self {
             object,
             item: PauseItem::Resume,
-            song_position: None,
             frame: 0,
         }
     }
@@ -107,7 +105,7 @@ impl<'a> Pause<'a> {
     pub fn render(
         &mut self,
         map: &mut MapLoan<RegularMap>,
-        mut vram: &mut VRamManager,
+        vram: &mut VRamManager,
         object_gfx: &'a OamManaged,
     ) {
         if self.frame == 80 {
@@ -157,12 +155,7 @@ impl<'a> Pause<'a> {
                     .hflip(x == PAUSE_RIGHT)
                     .vflip(y == PAUSE_BOTTOM);
 
-                map.set_tile(
-                    &mut vram,
-                    (x, y).into(),
-                    &background::tiles.tiles,
-                    tile_settings,
-                );
+                map.set_tile(vram, (x, y).into(), &background::tiles.tiles, tile_settings);
             }
         }
     }

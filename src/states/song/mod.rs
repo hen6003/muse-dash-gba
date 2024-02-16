@@ -13,7 +13,7 @@ use agb::{
 };
 use core::fmt::Write;
 
-use crate::{save_data::SaveDataManager, song_data::SongDataTrait, songs::SongID, BIG_FONT};
+use crate::{save_data::SaveDataManager, songs::SongID, BIG_FONT};
 
 use self::{
     pause::{Pause, PauseItem},
@@ -61,8 +61,8 @@ impl<'a, 'b> SongState<'a, 'b> {
             text: None,
             song_id,
             song: Song::new(song_id),
-            player: Player::new(&object_gfx),
-            pause: Pause::new(&object_gfx),
+            player: Player::new(object_gfx),
+            pause: Pause::new(object_gfx),
             music_channel: None,
             frame: 0,
             redraw_text: true,
@@ -76,7 +76,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
         _save_data: &mut SaveDataManager,
         _object_gfx: &'a OamManaged,
         tiled1: &'b Tiled1<'b>,
-        mut vram: &mut VRamManager,
+        vram: &mut VRamManager,
         mixer: &mut Mixer,
     ) {
         // Background
@@ -133,7 +133,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                 };
 
                 map.set_tile(
-                    &mut vram,
+                    vram,
                     (x, y).into(),
                     &background::tiles.tiles,
                     background::tiles.tile_settings[tile],
@@ -141,7 +141,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
             }
         }
 
-        map.commit(&mut vram);
+        map.commit(vram);
         map.show();
 
         self.map = Some(map);
@@ -149,7 +149,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
         let score_renderer = BIG_FONT.render_text((0u16, 0u16).into());
         let combo_renderer = BIG_FONT.render_text((13u16, 3u16).into());
 
-        text.commit(&mut vram);
+        text.commit(vram);
         text.show();
 
         self.text = Some((text, score_renderer, combo_renderer));
@@ -191,7 +191,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                 self.player.update();
             }
 
-            match self.song.update(&object_gfx, &input, self.frame) {
+            match self.song.update(object_gfx, input, self.frame) {
                 SongResult::UpdateText => self.redraw_text = true,
                 SongResult::Finished => {
                     if let Some(channel) = mixer.channel(self.music_channel.as_ref().unwrap()) {
@@ -206,7 +206,7 @@ impl<'a, 'b> State<'a, 'b> for SongState<'a, 'b> {
                 SongResult::None => (),
             }
 
-            self.player.draw(&object_gfx);
+            self.player.draw(object_gfx);
 
             if let Some(map) = &mut self.map {
                 map.commit(vram);
